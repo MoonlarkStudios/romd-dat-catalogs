@@ -1,0 +1,8 @@
+[
+  {
+    "catalogId": "synthetic/console/standard",
+    "expectedName": "ROMD Synthetic Console",
+    "sourceUrl": "https://example.invalid/synthetic-dat",
+    "path": "example.dat"
+  }
+]
