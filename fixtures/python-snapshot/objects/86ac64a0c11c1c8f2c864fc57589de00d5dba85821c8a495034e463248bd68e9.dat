@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE datafile PUBLIC "-//Logiqx//DTD ROM Management Datafile//EN" "https://example.invalid/datafile.dtd">
+<datafile>
+  <header><name>ROMD Synthetic Console</name><description>Hand-authored test metadata; no upstream content</description><version>1</version></header>
+  <game name="Synthetic Game"><rom name="example.bin" size="1" crc="d202ef8d" /></game>
+</datafile>

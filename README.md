@@ -11,16 +11,17 @@ integrity checks only. Do not enable production AutoApply against this output.
 
 ## Run
 
-Python 3.11+ on macOS or Linux (POSIX file locking required):
+Go 1.26+ on macOS or Linux (POSIX file locking required). The publisher uses
+only Go's standard library and builds into a single executable:
 
 ```sh
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python publisher.py fixtures/manifest.json --output output
+go test -race ./...
+go vet ./...
+go build -trimpath -o bin/publisher ./cmd/publisher
+./bin/publisher --output output fixtures/manifest.json
 ```
 
-The example hostname is deliberately non-routable. For local serving tests,
+CLI flags precede the manifest argument. The example hostname is deliberately non-routable. For local serving tests,
 the objects remain accessible under `output/`; HTTPS hosting is a later step.
 
 The manifest is a trusted local registry of acquisition attempts. Each entry
@@ -41,6 +42,25 @@ yet qualified for the entire upstream daily pack.
 - Atomic replacement of `current.json` after its objects are written and
   verified, with a persistent OS lock serializing local publisher processes.
 - Rejected-version exclusion in a small reference catch-up function.
+
+The Go implementation resumes existing Python prototype snapshots; a committed
+synthetic snapshot from Python commit `02d300c` exercises compatibility without
+a Python runtime. JSON/XML serialization can differ while DAT hashes and event
+identities remain stable. DAT comparison remains byte-based: semantic handling
+of header-only or formatting-only changes is a separate future feature.
+
+XML validation reads tokens without a full document tree, although the bounded
+original document and a set of game names remain in memory. UTF-8 XML is
+supported; other declared encodings fail closed pending explicit qualification.
+The full archive and retained-object verification paths still need large-catalog
+qualification. To measure the synthetic 10,000-game parser workload:
+
+```sh
+go test ./internal/publisher -run '^$' -bench BenchmarkDocument -benchmem
+```
+
+This benchmark is a reproducible measurement tool, not a full upstream run or
+evidence of a speedup over Python.
 
 `current.json` points to an exact snapshot by path, length, and SHA-256 and
 explicitly declares `trust: unsigned-development`. The snapshot references
