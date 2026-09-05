@@ -1,0 +1,104 @@
+name: Publish synthetic catalogs
+
+on:
+  workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: First deployment only; requires no existing public timestamp
+        type: boolean
+        default: false
+  schedule:
+    - cron: '37 4 * * *'
+
+concurrency:
+  group: synthetic-catalog-publication
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.SYNTHETIC_PUBLISH_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          version: '2026.8.8'
+          cache: false
+      - run: mise run check
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Restore authenticated prior state
+        env:
+          SITE: ${{ steps.pages.outputs.base_url }}
+          BOOTSTRAP: ${{ inputs.bootstrap || false }}
+        run: |
+          set -euo pipefail
+          if [ "$BOOTSTRAP" = true ]; then
+            status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 30 "$SITE/metadata/timestamp.json")
+            test "$status" = 404
+          else
+            ./bin/distribution restore --site "$SITE" --root trust/1.root.json --state output
+          fi
+      - name: Publish synthetic local candidate
+        run: ./bin/publisher --output output fixtures/manifest.json
+      - name: Stage and sign
+        id: stage
+        env:
+          TUF_ONLINE_KEYS: ${{ secrets.TUF_ONLINE_KEYS }}
+        run: |
+          set -euo pipefail
+          test -n "$TUF_ONLINE_KEYS"
+          test "$GITHUB_RUN_ATTEMPT" -lt 1000
+          version=$((GITHUB_RUN_NUMBER * 1000 + GITHUB_RUN_ATTEMPT))
+          tag="synthetic-$version"
+          keyfile="$RUNNER_TEMP/tuf-online.json"
+          umask 077
+          printf '%s' "$TUF_ONLINE_KEYS" > "$keyfile"
+          trap 'rm -f "$keyfile"' EXIT
+          ./bin/distribution stage --keys "$keyfile" --trust trust --state output --out staged --version "$version" --release-base "https://github.com/$GITHUB_REPOSITORY/releases/download/$tag"
+          printf 'tag=%s\n' "$tag" >> "$GITHUB_OUTPUT"
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+      - name: Upload versioned Release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.stage.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" --target "$GITHUB_SHA" --draft --title "Synthetic catalogs $TAG" --notes "Signed synthetic test catalogs. No upstream DATs."
+          gh release upload "$TAG" staged/assets/*
+          gh release edit "$TAG" --draft=false --latest=false
+      - name: Verify public asset availability and hashes
+        run: ./bin/distribution verify-assets --index staged/index.json
+      - name: Upload verified Pages deployment
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: staged/site
+          retention-days: 1
+      - name: Advance public metadata and RSS
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+      - name: Verify deployed signature chain and restore
+        env:
+          SITE: ${{ steps.pages.outputs.base_url }}
+          VERSION: ${{ steps.stage.outputs.version }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6; do
+            if ./bin/distribution restore --site "$SITE" --root trust/1.root.json --cache .verification-cache --state verified-output --expected-version "$VERSION"; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 6 ]; then sleep 5; fi
+          done
+          exit 1
