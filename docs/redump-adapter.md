@@ -52,11 +52,13 @@ results; the existing publisher exposes its generic acquisition-failure code.
 ## Before live enablement
 
 Establish upstream transport and redistribution conditions; qualify full-source
-coverage and capacity; persist retry deadlines across processes; persist and
-validate registry mappings/policy versions against prior state; and integrate
-review of suspicious changes. Each process must share one adapter per provider.
-A new process does not inherit this library's in-memory cooldown. Do not wire
-it into daily publication without that scheduling state and qualification.
+coverage and capacity; use the [durable local scheduler](source-state.md) for
+retry deadlines and registry bindings; add durable custody for ephemeral runners and interrupted-run
+recovery; and integrate review of suspicious changes. Each process must share
+one adapter per provider.
+A new process using the adapter alone does not inherit its in-memory cooldown.
+The scheduler persists admission separately; its integration and recovery
+boundaries are documented in the linked guide.
 
 The deterministic tests cover raw/ZIP acquisition, packaging-only changes,
 publication failure retention, wrong identity, HTML/empty/truncated documents,

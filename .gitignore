@@ -6,3 +6,5 @@ bin/
 staged/
 .verification-cache/
 verified-output/
+
+.source-state/
