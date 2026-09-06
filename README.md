@@ -4,21 +4,25 @@ Companion publisher for ROMD's planned one-click No-Intro and Redump DAT
 subscriptions. Complete upstream catalogs come first; future 1G1R filtering
 belongs in ROMD's library layer.
 
-**Current status: local, unsigned prototype using synthetic metadata.**
-There are no upstream acquisition adapters, public DAT mirrors, signing keys,
-automatic publication schedules, or ROMD integration yet. Checksums provide
-integrity checks only. Do not enable production AutoApply against this output.
+**Current status: synthetic publisher with signed distribution tooling.**
+The local publisher still emits explicitly unsigned intermediate state. The
+distribution command wraps it with TUF-authenticated catalog/feed targets for
+GitHub Releases and Pages. No upstream acquisition adapters, public upstream
+DAT mirrors, or ROMD integration are implemented. Do not enable production
+AutoApply against synthetic catalogs.
 
 ## Run
 
-Go 1.26+ on macOS or Linux (POSIX file locking required). The publisher uses
-only Go's standard library and builds into a single executable:
+Use mise on macOS or Linux (POSIX file locking required). `.mise.toml` pins
+Go 1.27.1, actionlint, and ShellCheck for development and CI. `go.mod` records
+the minimum language version; `GOTOOLCHAIN=local` prevents silent toolchain
+switching. Each CLI builds into a standalone executable:
 
 ```sh
-go test -race ./...
-go vet ./...
-go build -trimpath -o bin/publisher ./cmd/publisher
-./bin/publisher --output output fixtures/manifest.json
+mise trust
+mise install
+mise run check
+mise run smoke
 ```
 
 CLI flags precede the manifest argument. The example hostname is deliberately non-routable. For local serving tests,
@@ -56,7 +60,7 @@ The full archive and retained-object verification paths still need large-catalog
 qualification. To measure the synthetic 10,000-game parser workload:
 
 ```sh
-go test ./internal/publisher -run '^$' -bench BenchmarkDocument -benchmem
+mise run bench
 ```
 
 This benchmark is a reproducible measurement tool, not a full upstream run or
@@ -65,19 +69,22 @@ evidence of a speedup over Python.
 `current.json` points to an exact snapshot by path, length, and SHA-256 and
 explicitly declares `trust: unsigned-development`. The snapshot references
 an immutable RSS file and every current catalog. RSS is a notification hint;
-the complete index is the basis for reconciliation. No mutable standalone
-`feed.xml` is produced in this prototype: follow the snapshot's feed reference.
+the complete index is the basis for reconciliation. This local intermediate state
+has no mutable `feed.xml`; signed distribution adds the stable RSS alias and
+TUF-authenticated targets described in the deployment runbook.
 
-The tests exercise local process interruption before pointer commit. They do
-not prove host power-loss durability, remote object-store atomicity, signed
-metadata, upstream authenticity, or ROMD activation safety. DAT checks here
-are structural; full ROM/hash semantics and anomaly policies remain pending.
+Publisher tests exercise local process interruption before pointer commit;
+distribution tests exercise signed metadata and client verification over local
+HTTP fixtures. They do not prove host power-loss durability, GitHub deployment,
+upstream authenticity, or ROMD activation safety. DAT checks here are structural;
+full ROM/hash semantics and anomaly policies remain pending.
 
 ## Next acceptance gates
 
-1. Define and implement authenticated metadata, trusted bootstrap, expiry,
-   key rotation, compromise recovery, and rollback/freeze resistance using a
-   reviewed signing design. The experimental format is not a stable contract.
+1. Complete the first live synthetic deployment and operational recovery drill
+   using [the deployment runbook](docs/deployment.md). TUF signature, expiry,
+   rollback, and rotation tests are implemented; live deployment evidence is
+   separate. The signed catalog format remains experimental.
 2. Qualify acquisition and public redistribution conditions for each upstream.
    Preserve system/variant distinctions and explicit inclusion settings.
 3. Add adapters, remote publication, a stable RSS URL, retention, and actual

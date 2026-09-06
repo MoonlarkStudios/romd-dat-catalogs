@@ -1,0 +1,33 @@
+[tools]
+go = "1.27.1"
+actionlint = "1.7.12"
+shellcheck = "0.11.0"
+
+[env]
+# mise owns toolchain selection; Go must not silently download a different one.
+GOTOOLCHAIN = "local"
+
+[tasks.build]
+description = "Build the publisher and signed distribution tools"
+run = ["go build -trimpath -o bin/publisher ./cmd/publisher", "go build -trimpath -o bin/distribution ./cmd/distribution"]
+
+[tasks.test]
+description = "Run offline and localhost integration tests with race detection"
+run = "go test -race -timeout=60s ./..."
+
+[tasks.lint]
+description = "Check Go formatting and vet"
+run = ["test -z \"$(gofmt -l cmd internal)\"", "go vet ./...", "actionlint"]
+
+[tasks.check]
+description = "Run all development checks"
+depends = ["lint", "test", "build"]
+
+[tasks.bench]
+description = "Measure the synthetic parser workload"
+run = "go test ./internal/publisher -run '^$' -bench BenchmarkDocument -benchmem"
+
+[tasks.smoke]
+description = "Publish synthetic metadata locally"
+depends = ["build"]
+run = "./bin/publisher --output output fixtures/manifest.json"
