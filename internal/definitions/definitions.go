@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -18,7 +19,12 @@ import (
 const MaxBytes = 1 << 20
 
 type System struct {
-	Name string `json:"name"`
+	Name            string   `json:"name"`
+	ManufacturerIDs []string `json:"manufacturerIds"`
+}
+type Company struct {
+	Name    string   `json:"name"`
+	Aliases []string `json:"aliases"`
 }
 type Validation struct {
 	MinimumGames int `json:"minimumGames"`
@@ -33,6 +39,7 @@ type Catalog struct {
 	Validation       Validation `json:"validation"`
 }
 type Registry struct {
+	Companies     map[string]Company `json:"companies"`
 	SchemaVersion int                `json:"schemaVersion"`
 	Systems       map[string]System  `json:"systems"`
 	Catalogs      map[string]Catalog `json:"catalogs"`
@@ -68,10 +75,10 @@ func Parse(b []byte) (*Registry, error) {
 		return nil, errors.New("trailing definitions data")
 	}
 	var raw map[string]json.RawMessage
-	if err := object(b, &raw, "schemaVersion", "systems", "catalogs"); err != nil {
+	if err := object(b, &raw, "schemaVersion", "systems", "catalogs", "companies"); err != nil {
 		return nil, err
 	}
-	for _, section := range []string{"systems", "catalogs"} {
+	for _, section := range []string{"systems", "catalogs", "companies"} {
 		var entries map[string]json.RawMessage
 		if err := json.Unmarshal(raw[section], &entries); err != nil {
 			return nil, err
@@ -79,7 +86,11 @@ func Parse(b []byte) (*Registry, error) {
 		for _, entry := range entries {
 			var fields map[string]json.RawMessage
 			if section == "systems" {
-				if err := object(entry, &fields, "name"); err != nil {
+				if err := object(entry, &fields, "name", "manufacturerIds"); err != nil {
+					return nil, err
+				}
+			} else if section == "companies" {
+				if err := object(entry, &fields, "name", "aliases"); err != nil {
 					return nil, err
 				}
 			} else {
@@ -161,12 +172,39 @@ func uniqueValue(d *json.Decoder, depth int) error {
 	return nil
 }
 func (r *Registry) Validate() error {
-	if r == nil || r.SchemaVersion != 1 || len(r.Systems) == 0 || len(r.Systems) > 1000 || len(r.Catalogs) == 0 || len(r.Catalogs) > 1000 {
+	if r == nil || r.SchemaVersion != 1 || len(r.Companies) == 0 || len(r.Companies) > 10000 || len(r.Systems) == 0 || len(r.Systems) > 1000 || len(r.Catalogs) == 0 || len(r.Catalogs) > 1000 {
 		return errors.New("unsupported or empty definitions")
 	}
+	companyNames := map[string]string{}
+	for id, c := range r.Companies {
+		if !idPattern.MatchString(id) || len(id) > 64 || !label(c.Name) || c.Aliases == nil || len(c.Aliases) > 100 {
+			return fmt.Errorf("invalid company %q", id)
+		}
+		names := append([]string{c.Name}, c.Aliases...)
+		for _, name := range names {
+			if !label(name) {
+				return fmt.Errorf("invalid company name/alias for %q", id)
+			}
+			normalized := strings.ToLower(name)
+			if prior, exists := companyNames[normalized]; exists {
+				return fmt.Errorf("duplicate or ambiguous company name/alias for %q and %q", prior, id)
+			}
+			companyNames[normalized] = id
+		}
+	}
 	for id, s := range r.Systems {
-		if !idPattern.MatchString(id) || len(id) > 64 || !label(s.Name) {
+		if !idPattern.MatchString(id) || len(id) > 64 || !label(s.Name) || s.ManufacturerIDs == nil {
 			return fmt.Errorf("invalid system %q", id)
+		}
+		seen := map[string]bool{}
+		for _, companyID := range s.ManufacturerIDs {
+			if _, exists := r.Companies[companyID]; !exists {
+				return fmt.Errorf("unknown manufacturer %q for system %q", companyID, id)
+			}
+			if seen[companyID] {
+				return fmt.Errorf("duplicate manufacturer %q for system %q", companyID, id)
+			}
+			seen[companyID] = true
 		}
 	}
 	mappings := map[string]bool{}
@@ -198,9 +236,21 @@ func (r *Registry) Compatible(previous *Registry) error {
 	if previous == nil {
 		return nil
 	}
-	for id := range previous.Systems {
+	for id := range previous.Companies {
+		if _, ok := r.Companies[id]; !ok {
+			return fmt.Errorf("company %q removed; explicit migration required", id)
+		}
+	}
+	for id, old := range previous.Systems {
 		if _, ok := r.Systems[id]; !ok {
 			return fmt.Errorf("system %q removed; explicit migration required", id)
+		}
+		before := slices.Clone(old.ManufacturerIDs)
+		after := slices.Clone(r.Systems[id].ManufacturerIDs)
+		slices.Sort(before)
+		slices.Sort(after)
+		if !slices.Equal(before, after) {
+			return fmt.Errorf("system %q manufacturer relationship changed; explicit migration required", id)
 		}
 	}
 	for id, old := range previous.Catalogs {

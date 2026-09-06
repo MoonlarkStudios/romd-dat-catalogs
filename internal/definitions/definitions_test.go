@@ -28,7 +28,7 @@ func TestStrictDefinitions(t *testing.T) {
 	for name, b := range map[string][]byte{
 		"duplicate top":       bytes.Replace(good, []byte(`"schemaVersion": 1`), []byte(`"schemaVersion": 1, "schemaVersion": 1`), 1),
 		"duplicate escaped":   bytes.Replace(good, []byte(`"name": "Sony PlayStation"`), []byte(`"name":"Sony PlayStation", "\u006eame":"other"`), 1),
-		"duplicate system":    bytes.Replace(good, []byte(`"psx": { "name": "Sony PlayStation" }`), []byte(`"psx":{"name":"Sony"},"psx":{"name":"Other"}`), 1),
+		"duplicate system":    bytes.Replace(good, []byte(`"psx": {`), []byte(`"psx": {}, "psx": {`), 1),
 		"unknown":             bytes.Replace(good, []byte(`"name":`), []byte(`"extra":true,"name":`), 1),
 		"case alias":          bytes.Replace(good, []byte(`"name":`), []byte(`"Name":`), 1),
 		"missing":             bytes.Replace(good, []byte(`"provider": "redump",`), nil, 1),
@@ -83,7 +83,7 @@ func TestValidationAndCompatibility(t *testing.T) {
 		},
 		"wrong path": func(r *Registry) { r.Catalogs["redump/other/discs"] = r.Catalogs["redump/psx/discs"] },
 		"conflicting upstream": func(r *Registry) {
-			r.Systems["other"] = System{Name: "Other"}
+			r.Systems["other"] = System{Name: "Other", ManufacturerIDs: []string{}}
 			c := r.Catalogs["redump/psx/discs"]
 			c.SystemID = "other"
 			r.Catalogs["redump/other/discs"] = c
@@ -110,7 +110,7 @@ func TestValidationAndCompatibility(t *testing.T) {
 	c.ProviderSystemID = "psx"
 	c.Validation.MinimumGames++
 	next.Catalogs["redump/psx/discs"] = c
-	next.Systems["psx"] = System{Name: "PlayStation"}
+	next.Systems["psx"] = System{Name: "PlayStation", ManufacturerIDs: []string{"sony"}}
 	if e := next.Compatible(old); e != nil {
 		t.Fatal("reviewed label/floor edits should be allowed", e)
 	}
@@ -121,8 +121,8 @@ func TestValidationAndCompatibility(t *testing.T) {
 }
 func TestDeterministicSerialization(t *testing.T) {
 	a, _ := Parse(fixture(t))
-	a.Systems["other"] = System{Name: "Other"}
-	b := &Registry{SchemaVersion: 1, Systems: map[string]System{}, Catalogs: map[string]Catalog{}}
+	a.Systems["other"] = System{Name: "Other", ManufacturerIDs: []string{}}
+	b := &Registry{Companies: a.Companies, SchemaVersion: 1, Systems: map[string]System{}, Catalogs: map[string]Catalog{}}
 	b.Systems["other"] = a.Systems["other"]
 	b.Systems["psx"] = a.Systems["psx"]
 	b.Catalogs["redump/psx/discs"] = a.Catalogs["redump/psx/discs"]

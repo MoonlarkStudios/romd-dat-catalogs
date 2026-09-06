@@ -1,7 +1,7 @@
-# Shared system and catalog definitions
+# Shared system, company, and catalog definitions
 
 `definitions/systems.json` in the tooling repository is the single editable
-source. It is a schema-versioned dictionary of systems and catalogs. Keys are
+source. It is a schema-versioned dictionary of systems, companies, and catalogs. Keys are
 stable IDs; catalog `systemId` references our system ID, while
 `providerSystemId` selects the provider's distinct identifier. Only the complete
 PSX disc catalog is defined initially. Emulator configuration, BIOS requirements,
@@ -71,3 +71,35 @@ Update both pins in the data repository's caller after this tooling change is
 reviewed and merged to publish the definitions. The live workflow is not upgraded
 by merely editing the tooling repository. Public PSX mirroring still requires
 upstream redistribution qualification.
+
+## Company identities and grouping
+
+The `companies` dictionary starts with the 15 distinct manufacturer labels in
+ROMD's existing `src/Romd.Persistence/PlatformSeeder.cs`. This preserves existing
+application terminology; it is not a researched legal-entity or corporate-history
+registry. No parent-company, successor, developer, or publisher relationships
+are inferred from those labels. Initial company aliases are empty; add them only
+when their meaning has been reviewed.
+
+Each company has a stable dictionary key, a display `name`, and an `aliases`
+array. A system's `manufacturerIds` references those keys (`psx` references
+`sony`). The array supports multiple explicitly attributed manufacturers; an
+empty array means unspecified, as appropriate for a category such as Arcade.
+It does not mean every company manufactured that system. Other relationship
+roles can later reference the same company IDs without overloading manufacturer.
+
+Validation rejects unknown/duplicate manufacturer references, invalid company
+IDs, missing/null arrays, blank labels, and case-insensitive collisions between
+company names and aliases, including aliases that duplicate their own name.
+Established company IDs cannot disappear, and changing an existing system's
+manufacturer set requires an explicit reviewed migration. Reference order does
+not change the relationship. Display names and unambiguous aliases can evolve.
+Company data is part of the same signed `systems.json` copy and verified index;
+it is never maintained separately in the data repository.
+
+This extends the still-unreleased schema version 1 in PR #15. The running
+publisher has not adopted this registry, so no published-schema conversion is
+needed. It prepares shared seed data and grouping identities; it does not yet
+replace ROMD's DB seeders, add a Fetch latest action, or implement grouping UI.
+Those consumers should preserve DB IDs/local edits and review changes against
+the last-applied shared version.

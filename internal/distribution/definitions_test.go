@@ -49,6 +49,9 @@ func TestSignedSharedDefinitions(t *testing.T) {
 	if verified.Definitions == nil || verified.Definitions.Catalogs["redump/psx/discs"].SystemID != "psx" {
 		t.Fatal("missing signed system identity")
 	}
+	if verified.Definitions.Companies["sony"].Name != "Sony" || len(verified.Definitions.Companies) != 15 || verified.Definitions.Systems["psx"].ManufacturerIDs[0] != "sony" {
+		t.Fatal("company grouping missing from signed index")
+	}
 	expected, _ := json.Marshal(index.Definitions)
 	if !bytes.Equal(expected, read(t, filepath.Join(out, "site/systems.json"))) {
 		t.Fatal("alias differs from signed index definitions")
@@ -82,6 +85,9 @@ func TestSignedSharedDefinitions(t *testing.T) {
 	prior, err := definitions.Load(filepath.Join(restored, ".definitions.json"))
 	if err != nil {
 		t.Fatal(err)
+	}
+	if prior.Companies["sony"].Name != "Sony" || prior.Systems["psx"].ManufacturerIDs[0] != "sony" {
+		t.Fatal("company identity lost on restore")
 	}
 	if err := registry.Compatible(prior); err != nil {
 		t.Fatal(err)
