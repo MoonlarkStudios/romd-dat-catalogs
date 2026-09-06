@@ -2,9 +2,12 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/publisher"
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/redump"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -47,7 +50,17 @@ func TestPausedPSX(t *testing.T) {
 				t.Fatal(err)
 			}
 			var out bytes.Buffer
-			if err := run([]string{"--output", root, "--paused", "redump-psx"}, &out, &out); err != nil {
+			registryPath := t.TempDir()
+			for _, name := range []string{"systems.json", "companies.json", "catalogs.json"} {
+				raw, err := os.ReadFile(filepath.Join("../../definitions", name))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(registryPath, name), bytes.ReplaceAll(raw, []byte("Sony - PlayStation"), []byte("ROMD Synthetic Console")), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := run([]string{"--output", root, "--paused", "--catalog", "redump/psx/discs", "--definitions", registryPath}, &out, &out); err != nil {
 				t.Fatal(err)
 			}
 			after, err := publisher.LoadSnapshot(root)
@@ -80,5 +93,58 @@ func TestPausedPSX(t *testing.T) {
 				t.Fatal("missing summary health")
 			}
 		})
+	}
+}
+
+type captureAcquirer struct {
+	calls    int
+	catalogs []redump.Catalog
+}
+
+func (a *captureAcquirer) Acquire(_ context.Context, c []redump.Catalog, _ string) ([]redump.Result, error) {
+	a.calls++
+	a.catalogs = c
+	failure := "offline fixture"
+	return []redump.Result{{Attempt: publisher.Attempt{CatalogID: c[0].ID, ExpectedName: c[0].ExpectedName, SourceURL: "http://redump.org/datfile/" + c[0].System + "/", Failure: &failure}}}, nil
+}
+func TestCatalogSelectionBeforeNetwork(t *testing.T) {
+	adapter := &captureAcquirer{}
+	root := filepath.Join(t.TempDir(), "state")
+	var out bytes.Buffer
+	args := []string{"--output", root, "--definitions", "../../definitions", "--catalog", "redump/psx/discs"}
+	if err := runWithAcquirer(args, &out, &out, adapter); err != nil {
+		t.Fatal(err)
+	}
+	c := adapter.catalogs[0]
+	if adapter.calls != 1 || c.Platform != "psx" || c.System != "psx" || c.MinGames != 10000 || c.MinROMs != 50000 {
+		t.Fatal(c)
+	}
+	args[len(args)-1] = "redump/missing/discs"
+	if err := runWithAcquirer(args, &out, &out, adapter); err == nil {
+		t.Fatal("unknown catalog accepted")
+	}
+	if adapter.calls != 1 {
+		t.Fatal("unknown selection reached network")
+	}
+	bad := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bad, "systems.json"), []byte(`{"psx":{},"psx":{}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"companies.json", "catalogs.json"} {
+		raw, err := os.ReadFile(filepath.Join("../../definitions", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(bad, name), raw, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	args[3] = bad
+	args[len(args)-1] = "redump/psx/discs"
+	if err := runWithAcquirer(args, &out, &out, adapter); err == nil {
+		t.Fatal("invalid registry accepted")
+	}
+	if adapter.calls != 1 {
+		t.Fatal("bad data reached network")
 	}
 }

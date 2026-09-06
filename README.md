@@ -19,6 +19,9 @@ public upstream DAT mirrors are enabled. An operator-driven [candidate reader](d
 is available for the first ROMD review integration. Do not enable production
 AutoApply against synthetic catalogs.
 
+Shared identity lives in the reviewed [system and catalog definitions](docs/system-definitions.md).
+The tooling repository owns the source; the data site publishes its signed copy.
+
 ## Run
 
 Use mise on macOS or Linux (POSIX file locking required). `.mise.toml` pins

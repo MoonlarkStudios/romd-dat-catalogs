@@ -15,6 +15,7 @@ import (
 
 // Candidate is an authenticated document ready for ROMD's separate semantic review.
 type Candidate struct {
+	SystemID           string `json:"systemId,omitempty"`
 	CatalogID          string `json:"catalogId"`
 	Name               string `json:"name"`
 	SHA256             string `json:"sha256"`
@@ -30,6 +31,18 @@ func ReadCandidate(index Index, id, name string, client *http.Client) (Candidate
 	catalog, ok := index.Snapshot.Catalogs[id]
 	if !ok || catalog.Name != name || name == "" {
 		return result, nil, errors.New("catalog identity is not present in the signed index")
+	}
+	var systemID string
+	if index.Definitions != nil {
+		if err := index.Definitions.Validate(); err != nil {
+			return result, nil, err
+		}
+		definition, ok := index.Definitions.Catalogs[id]
+		if ok && definition.ExpectedName == name {
+			systemID = definition.SystemID
+		} else if id != "synthetic/console/standard" {
+			return result, nil, errors.New("catalog system binding is invalid")
+		}
 	}
 	if catalog.Health != "healthy" || catalog.Artifact == nil {
 		return result, nil, errors.New("publisher could not confirm a healthy catalog; keep the installed version and retry later")
@@ -53,7 +66,7 @@ func ReadCandidate(index Index, id, name string, client *http.Client) (Candidate
 	if len(document) != ref.Bytes || publisher.Hash(document) != ref.SHA256 {
 		return result, nil, errors.New("expected an exact extracted DAT document")
 	}
-	result = Candidate{CatalogID: id, Name: name, SHA256: ref.SHA256, Bytes: ref.Bytes, PublicationVersion: index.Version}
+	result = Candidate{SystemID: systemID, CatalogID: id, Name: name, SHA256: ref.SHA256, Bytes: ref.Bytes, PublicationVersion: index.Version}
 	if catalog.Provenance != nil {
 		result.SourceURL = catalog.Provenance.SourceURL
 	}
