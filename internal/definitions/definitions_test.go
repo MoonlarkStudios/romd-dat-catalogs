@@ -3,14 +3,17 @@ package definitions
 import (
 	"bytes"
 	"encoding/json"
-	"os"
 	"strings"
 	"testing"
 )
 
 func fixture(t *testing.T) []byte {
 	t.Helper()
-	b, e := os.ReadFile("../../definitions/systems.json")
+	r, e := LoadSource("../../definitions")
+	if e != nil {
+		t.Fatal(e)
+	}
+	b, e := json.MarshalIndent(r, "", "  ")
 	if e != nil {
 		t.Fatal(e)
 	}

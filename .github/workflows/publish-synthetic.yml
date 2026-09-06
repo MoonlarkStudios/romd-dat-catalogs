@@ -53,7 +53,7 @@ jobs:
           version: '2026.8.8'
           cache: false
       - run: mise run check
-      - run: ./bin/distribution validate-definitions --definitions definitions/systems.json
+      - run: ./bin/distribution validate-definitions --definitions definitions
       - name: Configure Pages
         id: pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
@@ -72,9 +72,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$PSX_ENABLED" = true ]; then
-            ./bin/publisher --output output --definitions definitions/systems.json --catalog redump/psx/discs > publication-summary.json
+            ./bin/publisher --output output --definitions definitions --catalog redump/psx/discs > publication-summary.json
           else
-            ./bin/publisher --output output --definitions definitions/systems.json --catalog redump/psx/discs --paused > publication-summary.json
+            ./bin/publisher --output output --definitions definitions --catalog redump/psx/discs --paused > publication-summary.json
           fi
           {
             printf '### Catalog acquisition result\n\n```json\n'
@@ -120,7 +120,7 @@ jobs:
           umask 077
           printf '%s' "$TUF_ONLINE_KEYS" > "$keyfile"
           trap 'rm -f "$keyfile"' EXIT
-          ./bin/distribution stage --keys "$keyfile" --trust trust --state output --out staged --version "$version" --data-repository "$DATA_REPOSITORY" --data-commit "$DATA_COMMIT" --definitions definitions/systems.json
+          ./bin/distribution stage --keys "$keyfile" --trust trust --state output --out staged --version "$version" --data-repository "$DATA_REPOSITORY" --data-commit "$DATA_COMMIT" --definitions definitions
           printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
       - name: Verify public asset availability and hashes
         run: ./bin/distribution verify-assets --index staged/index.json

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -51,7 +52,50 @@ func label(s string) bool {
 	return len(s) > 0 && len(s) <= 200 && strings.TrimSpace(s) == s && strings.IndexFunc(s, unicode.IsControl) < 0
 }
 
+// LoadSource assembles the fixed category files from one pinned source checkout.
+// Preserve raw JSON until Parse checks duplicate keys across the whole snapshot.
+func LoadSource(directory string) (*Registry, error) {
+	sections := map[string]json.RawMessage{"schemaVersion": json.RawMessage("1")}
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range entries {
+		if strings.EqualFold(filepath.Ext(entry.Name()), ".json") && entry.Name() != "systems.json" && entry.Name() != "companies.json" && entry.Name() != "catalogs.json" {
+			return nil, fmt.Errorf("unknown definition file %q", entry.Name())
+		}
+	}
+	for _, name := range []string{"systems", "companies", "catalogs"} {
+		path := filepath.Join(directory, name+".json")
+		stat, err := os.Lstat(path)
+		if err != nil {
+			return nil, err
+		}
+		if !stat.Mode().IsRegular() {
+			return nil, fmt.Errorf("definition file %q must be regular", name)
+		}
+		b, err := readBounded(path)
+		if err != nil {
+			return nil, err
+		}
+		sections[name] = b
+	}
+	b, err := json.Marshal(sections)
+	if err != nil {
+		return nil, err
+	}
+	return Parse(b)
+}
+
+// Load reads a generated snapshot, such as authenticated restored state.
 func Load(path string) (*Registry, error) {
+	b, err := readBounded(path)
+	if err != nil {
+		return nil, err
+	}
+	return Parse(b)
+}
+func readBounded(path string) ([]byte, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -61,7 +105,10 @@ func Load(path string) (*Registry, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Parse(b)
+	if len(b) > MaxBytes || !utf8.Valid(b) {
+		return nil, errors.New("definitions must be bounded UTF-8 JSON")
+	}
+	return b, nil
 }
 func Parse(b []byte) (*Registry, error) {
 	if len(b) > MaxBytes || !utf8.Valid(b) {

@@ -26,20 +26,20 @@ func runWithAcquirer(args []string, out, errOut io.Writer, adapter acquirer) err
 	f.SetOutput(errOut)
 	output := f.String("output", "", "publication directory (required)")
 	paused := f.Bool("paused", false, "record selected catalog as paused without fetching (requires existing state)")
-	registryPath := f.String("definitions", "definitions/systems.json", "reviewed system/catalog definitions")
+	registryPath := f.String("definitions", "definitions", "reviewed definitions directory")
 	catalogID := f.String("catalog", "", "exact catalog ID to acquire; exclusive with manifest")
 	base := f.String("base-url", "https://catalogs.example.invalid/", "public HTTPS base URL")
 	if e := f.Parse(args); e != nil {
 		return e
 	}
 	if *output == "" || (*catalogID == "" && (f.NArg() != 1 || *paused)) || (*catalogID != "" && f.NArg() != 0) {
-		return fmt.Errorf("usage: publisher --output DIR MANIFEST | --catalog ID [--definitions FILE] [--paused]")
+		return fmt.Errorf("usage: publisher --output DIR MANIFEST | --catalog ID [--definitions DIR] [--paused]")
 	}
 	var a []publisher.Attempt
 	var e error
 	var selected definitions.Catalog
 	if *catalogID != "" {
-		registry, err := definitions.Load(*registryPath)
+		registry, err := definitions.LoadSource(*registryPath)
 		if err != nil {
 			return err
 		}

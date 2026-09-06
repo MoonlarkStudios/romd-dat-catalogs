@@ -13,7 +13,7 @@ import (
 
 func TestSignedSharedDefinitions(t *testing.T) {
 	f := makeFixture(t)
-	registry, err := definitions.Load("../../definitions/systems.json")
+	registry, err := definitions.LoadSource("../../definitions")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,10 +53,10 @@ func TestSignedSharedDefinitions(t *testing.T) {
 		t.Fatal("company grouping missing from signed index")
 	}
 	expected, _ := json.Marshal(index.Definitions)
-	if !bytes.Equal(expected, read(t, filepath.Join(out, "site/systems.json"))) {
+	if !bytes.Equal(expected, read(t, filepath.Join(out, "site/reference-data.json"))) {
 		t.Fatal("alias differs from signed index definitions")
 	}
-	if !bytes.Equal(expected, read(t, filepath.Join(out, "site/targets", publisher.Hash(expected)+".systems.json"))) {
+	if !bytes.Equal(expected, read(t, filepath.Join(out, "site/targets", publisher.Hash(expected)+".reference-data.json"))) {
 		t.Fatal("systems target differs")
 	}
 	var targets struct {
@@ -70,7 +70,13 @@ func TestSignedSharedDefinitions(t *testing.T) {
 	if err := json.Unmarshal(read(t, filepath.Join(out, "site/metadata/1.targets.json")), &targets); err != nil {
 		t.Fatal(err)
 	}
-	target, ok := targets.Signed.Targets["systems.json"]
+	if _, exists := targets.Signed.Targets["systems.json"]; exists {
+		t.Fatal("old partial-sounding target name remains")
+	}
+	if _, err := os.Stat(filepath.Join(out, "site/systems.json")); !os.IsNotExist(err) {
+		t.Fatal("obsolete systems alias emitted")
+	}
+	target, ok := targets.Signed.Targets["reference-data.json"]
 	if !ok || target.Length != len(expected) || target.Hashes["sha256"] != publisher.Hash(expected) {
 		t.Fatal("definitions not authenticated as a TUF target")
 	}

@@ -75,10 +75,10 @@ func TestInitAndStageCLI(t *testing.T) {
 		t.Fatal("Git export changed complete DAT")
 	}
 	gitStage := filepath.Join(dir, "git-staged")
-	if e := run([]string{"stage", "--state", state, "--trust", filepath.Join(keys, "public"), "--keys", filepath.Join(keys, "online.json"), "--out", gitStage, "--version", "2", "--data-repository", "example/data", "--data-commit", strings.Repeat("a", 40), "--definitions", "../../definitions/systems.json"}); e != nil {
+	if e := run([]string{"stage", "--state", state, "--trust", filepath.Join(keys, "public"), "--keys", filepath.Join(keys, "online.json"), "--out", gitStage, "--version", "2", "--data-repository", "example/data", "--data-commit", strings.Repeat("a", 40), "--definitions", "../../definitions"}); e != nil {
 		t.Fatal(e)
 	}
-	for _, name := range []string{"index.json", "site/metadata/timestamp.json", "site/feed.xml", "site/systems.json"} {
+	for _, name := range []string{"index.json", "site/metadata/timestamp.json", "site/feed.xml", "site/reference-data.json"} {
 		if _, e := os.Stat(filepath.Join(gitStage, name)); e != nil {
 			t.Fatal(e)
 		}

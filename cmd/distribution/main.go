@@ -47,14 +47,14 @@ func run(args []string) error {
 		}
 		return distribution.Initialize(*out, time.Now().UTC(), b, k)
 	case "validate-definitions":
-		path := fs.String("definitions", "definitions/systems.json", "reviewed definitions")
+		path := fs.String("definitions", "definitions", "reviewed definitions directory")
 		if err := fs.Parse(args[1:]); err != nil {
 			return err
 		}
 		if fs.NArg() != 0 {
 			return errors.New("unexpected argument")
 		}
-		_, err := definitions.Load(*path)
+		_, err := definitions.LoadSource(*path)
 		return err
 	case "export-data":
 		state := fs.String("state", "output", "local publisher state")
@@ -72,7 +72,7 @@ func run(args []string) error {
 		keys := fs.String("keys", "", "online signing keys file")
 		out := fs.String("out", "staged", "new staging directory")
 		release := fs.String("release-base", "", "immutable release asset base URL")
-		registryPath := fs.String("definitions", "", "reviewed system/catalog definitions (Git publication)")
+		registryPath := fs.String("definitions", "", "reviewed definitions directory (Git publication)")
 		repository := fs.String("data-repository", "", "GitHub owner/repo containing complete DATs")
 		commit := fs.String("data-commit", "", "full pushed data commit SHA")
 		version := fs.Int64("version", 0, "monotonic metadata version")
@@ -88,7 +88,7 @@ func run(args []string) error {
 			if *repository == "" || *release != "" {
 				return errors.New("definitions require Git publication")
 			}
-			opt.Definitions, e = definitions.Load(*registryPath)
+			opt.Definitions, e = definitions.LoadSource(*registryPath)
 			if e != nil {
 				return e
 			}

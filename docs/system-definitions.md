@@ -1,7 +1,16 @@
 # Shared system, company, and catalog definitions
 
-`definitions/systems.json` in the tooling repository is the single editable
-source. It is a schema-versioned dictionary of systems, companies, and catalogs. Keys are
+The tooling repository owns the editable source, split by category:
+
+```text
+definitions/
+  systems.json
+  companies.json
+  catalogs.json
+```
+
+Each file is a dictionary, without a repeated ID inside each entry. The loader
+assembles all three files into one schema-versioned snapshot. Keys are
 stable IDs; catalog `systemId` references our system ID, while
 `providerSystemId` selects the provider's distinct identifier. Only the complete
 PSX disc catalog is defined initially. Emulator configuration, BIOS requirements,
@@ -14,8 +23,8 @@ in its adapter. Count floors are anomaly checks, not proof of completeness.
 
 ```sh
 mise run check
-./bin/distribution validate-definitions --definitions definitions/systems.json
-./bin/publisher --output output --definitions definitions/systems.json \
+./bin/distribution validate-definitions --definitions definitions
+./bin/publisher --output output --definitions definitions \
   --catalog redump/psx/discs
 ```
 
@@ -26,6 +35,13 @@ providers/representations, conflicting upstream mappings, and nonpositive count
 floors. Input size and nesting are bounded. JSON dictionaries serialize in sorted
 key order; no behavior depends on insertion order. Catalog IDs must equal
 `provider/systemId/representation`, which also determines the stable DAT path.
+The source loader requires all three files, rejects unexpected JSON categories,
+and preserves duplicate keys until strict validation rather than silently losing
+them during assembly. Each file and the complete snapshot are size-bounded.
+The version-1 source format is owned by the loader; the generated snapshot carries
+`schemaVersion: 1`. Regions/languages can be added through a reviewed schema
+extension when their existing ROMD seeds are migrated. Files from different
+published versions are never downloaded and mixed by consumers.
 CI validates the committed definition through tests; publication explicitly
 validates definitions before restoring or acquiring any source.
 
@@ -37,9 +53,9 @@ hardcoded `redump-psx` command has been replaced by `--catalog`.
 
 ## Signed distribution copy
 
-Git-backed staging with `--definitions definitions/systems.json` includes the
-same registry in the signed catalog index and in the TUF `systems.json` target.
-The data repository's Pages artifact also exposes `/systems.json` for inspection.
+Git-backed staging with `--definitions definitions` includes the
+same registry in the signed catalog index and in the TUF `reference-data.json` target.
+The data repository's Pages artifact also exposes `/reference-data.json` for inspection.
 This alias alone is not authenticated: consumers must verify it as a TUF target,
 or use the identical definitions from the verified catalog index. Definitions
 are not copied into the data branch and metadata refreshes create no data commit.
@@ -94,7 +110,7 @@ company names and aliases, including aliases that duplicate their own name.
 Established company IDs cannot disappear, and changing an existing system's
 manufacturer set requires an explicit reviewed migration. Reference order does
 not change the relationship. Display names and unambiguous aliases can evolve.
-Company data is part of the same signed `systems.json` copy and verified index;
+Company data is part of the same signed `reference-data.json` copy and verified index;
 it is never maintained separately in the data repository.
 
 This extends the still-unreleased schema version 1 in PR #15. The running

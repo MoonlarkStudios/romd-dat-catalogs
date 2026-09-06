@@ -50,13 +50,15 @@ func TestPausedPSX(t *testing.T) {
 				t.Fatal(err)
 			}
 			var out bytes.Buffer
-			registry, err := os.ReadFile("../../definitions/systems.json")
-			if err != nil {
-				t.Fatal(err)
-			}
-			registryPath := filepath.Join(t.TempDir(), "definitions.json")
-			if err := os.WriteFile(registryPath, bytes.ReplaceAll(registry, []byte("Sony - PlayStation"), []byte("ROMD Synthetic Console")), 0600); err != nil {
-				t.Fatal(err)
+			registryPath := t.TempDir()
+			for _, name := range []string{"systems.json", "companies.json", "catalogs.json"} {
+				raw, err := os.ReadFile(filepath.Join("../../definitions", name))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(registryPath, name), bytes.ReplaceAll(raw, []byte("Sony - PlayStation"), []byte("ROMD Synthetic Console")), 0600); err != nil {
+					t.Fatal(err)
+				}
 			}
 			if err := run([]string{"--output", root, "--paused", "--catalog", "redump/psx/discs", "--definitions", registryPath}, &out, &out); err != nil {
 				t.Fatal(err)
@@ -109,7 +111,7 @@ func TestCatalogSelectionBeforeNetwork(t *testing.T) {
 	adapter := &captureAcquirer{}
 	root := filepath.Join(t.TempDir(), "state")
 	var out bytes.Buffer
-	args := []string{"--output", root, "--definitions", "../../definitions/systems.json", "--catalog", "redump/psx/discs"}
+	args := []string{"--output", root, "--definitions", "../../definitions", "--catalog", "redump/psx/discs"}
 	if err := runWithAcquirer(args, &out, &out, adapter); err != nil {
 		t.Fatal(err)
 	}
@@ -124,9 +126,18 @@ func TestCatalogSelectionBeforeNetwork(t *testing.T) {
 	if adapter.calls != 1 {
 		t.Fatal("unknown selection reached network")
 	}
-	bad := filepath.Join(t.TempDir(), "bad.json")
-	if err := os.WriteFile(bad, []byte(`{"schemaVersion":1,"schemaVersion":1}`), 0600); err != nil {
+	bad := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bad, "systems.json"), []byte(`{"psx":{},"psx":{}}`), 0600); err != nil {
 		t.Fatal(err)
+	}
+	for _, name := range []string{"companies.json", "catalogs.json"} {
+		raw, err := os.ReadFile(filepath.Join("../../definitions", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(bad, name), raw, 0600); err != nil {
+			t.Fatal(err)
+		}
 	}
 	args[3] = bad
 	args[len(args)-1] = "redump/psx/discs"
