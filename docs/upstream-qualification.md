@@ -122,3 +122,68 @@ any attribution, historical retention, removal, or restricted-catalog conditions
 We would not distribute ROMs, restricted data, or credentials.
 
 This is a draft for operator review, not a message that has been sent.
+
+## Real PlayStation document through ROMD
+
+A follow-up on 2026-09-06 UTC exercised ROMD main
+`7cc78c45` (companion main `3096287`). This was an isolated API/worker experiment,
+not subscription implementation or a deployed instance change.
+
+The bounded PlayStation request again returned HTTP 200 with a 4,021,187-byte
+ZIP and the same 12,756,749-byte document/hash recorded above. HTTPS port 443
+still refused the connection from this environment. No HTTP fallback was added
+to the production adapter. The unchanged document is a real no-update case;
+there is not yet a pair of genuinely changed upstream versions in this trial.
+
+A temporary local xUnit probe used ROMD's authenticated admin test client,
+real application PostgreSQL fixture, and existing upload/replacement execution.
+The fixture uses in-memory Hangfire transport, so this is not split-host or
+PostgreSQL transport acceptance. All four developer connection-string exports
+were removed for the test.
+
+- Full extracted DAT uploaded through `/api/upload/dat`, with no platform
+  override. ROMD routed it to the seeded PlayStation platform (`psx`; numeric
+  ID 21 in this fixture). Numeric database IDs are not the distribution identity.
+- API counts and persisted rows matched all 10,914 disc entries and 60,168 track
+  records. Original-document download matched the exact SHA-256 above.
+- Upload admission to completion took 22.307 seconds in this one local run;
+  this is not a throughput benchmark or unattended reliability result.
+- A malformed replacement exposed a parse error while preserving the Active
+  version, all its game rows, and byte-identical original download.
+- The replacement job remained `Ingesting` with errors and scheduler retries.
+  It did **not** establish the desired clear terminal failed-update/retry UX.
+
+Final focused run: one test passed in 29.294 seconds, after correcting the local
+probe's query and its incorrect expectation that malformed replacement would
+immediately become terminal. The earlier terminal-state wait hit the 60-second
+hang guard. Expected injected parse errors and a fixture Data Protection
+unencrypted-key warning appeared; no product behavior was changed to hide them.
+No full backend suite, browser acceptance, NAS deployment, ROM-content hash
+verification, or public redistribution was performed. Source data and the
+one-off probe were not committed. Local probe/logs are disposable evidence;
+this report records their relevant results.
+
+### Consequences for the first user flow
+
+Use the existing source identity and activation transaction, but do not simply
+pause the replacement job after ingestion. Current pending ingestion upserts
+source claims, and projection code considers pending claims; its pending marker
+is not evidence of isolation suitable for a long-lived review screen. Hold the
+candidate document separately until approval and test that reviewing it cannot
+change browse, ownership, or library results.
+
+The next implementation should let a user select PlayStation, check for a
+candidate, and understand its exact-version diff before approval. Show disc and
+track changes with samples and explicit truncation; do not label track counts
+as titles or imply uncomputed library impact. Identical document bytes should
+report up to date without entering replacement. Invalid candidates should show
+an actionable validation failure while the working catalog remains usable.
+Approval must reject a stale active-version baseline and use the existing
+activation path only after validation. First activation of a subscription and
+binding an existing source both need explicit tests.
+
+Direct HTTP acquisition for an opt-in reviewed trial is an operator decision,
+not an implicit transport downgrade. Public mirroring still needs established
+redistribution conditions. Neither unresolved item justifies adding more remote
+scheduling infrastructure. Complete public PSX disc-document counts do not prove
+BIOS coverage, restricted catalogs, all Redump systems, or No-Intro coverage.
