@@ -245,9 +245,10 @@ to reproduce this example.
 
 ### Next slice and explicit gates
 
-1. Resolve the PlayStation acquisition transport: qualify an upstream HTTPS
-   endpoint, or explicitly approve HTTP for an operator-reviewed trial. Do not
-   silently downgrade the existing HTTPS-only adapter.
+1. Target `http://redump.org` explicitly, as authorized after this follow-up.
+   Redump supports HTTP; the adapter uses that transport directly, with no HTTPS
+   probe or fallback. This resolves the transport decision for Redump acquisition.
+   Distribution signatures do not authenticate the upstream HTTP leg.
 2. Acquire one complete public PSX disc document using the existing reviewed
    identity and size/count checks. Preserve source attribution and distinguish
    this from BIOS, restricted-catalog, or full-Redump coverage.
@@ -271,3 +272,14 @@ Validation for an acquisition code change remains `mise run check` and
 changes require its backend, integration, generated-client, and web routes.
 This documentation follow-up checked whitespace and referenced local files;
 it did not rerun Go or ROMD runtime suites.
+
+
+### Authorized Redump transport
+
+The operator confirmed Redump is HTTP-only and directed the adapter to target
+HTTP. This supersedes historical statements above that describe transport as an
+unresolved decision. Existing bounds, no-redirect policy, document validation,
+content hashes, and last-working-catalog retention still apply. The production
+constructor and acquisition provenance use `http://redump.org`; public signed
+Pages/Release distribution continues to use HTTPS. Public upstream mirroring
+has not been enabled by this transport change.

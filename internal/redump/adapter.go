@@ -44,7 +44,9 @@ type Adapter struct {
 	cooldown time.Time
 }
 
-func New() *Adapter { return newAdapter("https://redump.org", http.DefaultTransport) }
+// New targets Redump's HTTP-only public endpoint explicitly. Publisher signing
+// authenticates distribution, not this upstream connection.
+func New() *Adapter { return newAdapter("http://redump.org", http.DefaultTransport) }
 func newAdapter(origin string, transport http.RoundTripper) *Adapter {
 	return &Adapter{origin: origin, gate: make(chan struct{}, 1), client: &http.Client{Transport: transport, Timeout: 30 * time.Second,
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}}
@@ -55,7 +57,7 @@ func newAdapter(origin string, transport http.RoundTripper) *Adapter {
 // directory; the caller owns its lifetime. No existing publication is modified.
 // 429/503 stop the batch and set a cooldown shared by subsequent calls on this
 // adapter. Calls are serialized with cancellable admission. Use Scheduler for
-// durable admission across processes; live polling requires its recovery wiring.
+// durable admission across processes when needed.
 func (a *Adapter) Acquire(ctx context.Context, catalogs []Catalog, stage string) ([]Result, error) {
 	return a.acquire(ctx, catalogs, stage, nil)
 }
@@ -78,8 +80,8 @@ func (a *Adapter) acquire(ctx context.Context, catalogs []Catalog, stage string,
 		return nil, e
 	}
 	origin, e := url.Parse(a.origin)
-	if e != nil || origin.Scheme != "https" || origin.Host == "" || origin.User != nil || origin.RawQuery != "" || origin.ForceQuery || origin.Fragment != "" || origin.Path != "" {
-		return nil, errors.New("HTTPS origin required")
+	if e != nil || origin.Scheme != "http" || origin.Host == "" || origin.User != nil || origin.RawQuery != "" || origin.ForceQuery || origin.Fragment != "" || origin.Path != "" {
+		return nil, errors.New("HTTP origin without credentials, path, query, or fragment required")
 	}
 	// Mkdir, unlike MkdirAll, rejects reuse of an existing staging directory.
 	if e = os.Mkdir(stage, 0700); e != nil {
