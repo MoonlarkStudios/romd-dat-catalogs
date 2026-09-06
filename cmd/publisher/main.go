@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/JackSkylark/romd-dat-catalogs/internal/publisher"
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/publisher"
 	"io"
 	"os"
 )

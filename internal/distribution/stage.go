@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JackSkylark/romd-dat-catalogs/internal/publisher"
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/publisher"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 )
 

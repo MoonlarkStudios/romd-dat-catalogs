@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JackSkylark/romd-dat-catalogs/internal/distribution"
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/distribution"
 )
 
 func run(args []string) error {

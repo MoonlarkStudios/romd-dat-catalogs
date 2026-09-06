@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JackSkylark/romd-dat-catalogs/internal/publisher"
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/publisher"
 )
 
 func TestInitAndStageCLI(t *testing.T) {
