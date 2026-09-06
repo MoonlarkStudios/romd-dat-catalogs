@@ -54,9 +54,12 @@ func newAdapter(origin string, transport http.RoundTripper) *Adapter {
 // batch budget. Results contain publisher attempts pointing into a new staging
 // directory; the caller owns its lifetime. No existing publication is modified.
 // 429/503 stop the batch and set a cooldown shared by subsequent calls on this
-// adapter. Calls are serialized with cancellable admission. A future scheduler
-// must persist RetryAt across process restarts before enabling live polling.
+// adapter. Calls are serialized with cancellable admission. Use Scheduler for
+// durable admission across processes; live polling requires its recovery wiring.
 func (a *Adapter) Acquire(ctx context.Context, catalogs []Catalog, stage string) ([]Result, error) {
+	return a.acquire(ctx, catalogs, stage, nil)
+}
+func (a *Adapter) acquire(ctx context.Context, catalogs []Catalog, stage string, observe func(Result) error) ([]Result, error) {
 	if a.client == nil || a.gate == nil {
 		return nil, errors.New("adapter must be constructed with New")
 	}
@@ -71,15 +74,8 @@ func (a *Adapter) Acquire(ctx context.Context, catalogs []Catalog, stage string)
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
-	if len(catalogs) == 0 || len(catalogs) > MaxCatalogs {
-		return nil, errors.New("catalog count must be 1..25")
-	}
-	seen, systems := map[string]bool{}, map[string]bool{}
-	for _, c := range catalogs {
-		if !catalogID.MatchString(c.ID) || !systemID.MatchString(c.System) || seen[c.ID] || systems[c.System] || strings.TrimSpace(c.ExpectedName) == "" || strings.TrimSpace(c.Platform) == "" || strings.TrimSpace(c.Representation) == "" || strings.TrimSpace(c.PolicyVersion) == "" || c.MinGames < 1 || c.MinROMs < 1 {
-			return nil, errors.New("invalid or duplicate reviewed catalog identity")
-		}
-		seen[c.ID], systems[c.System] = true, true
+	if e := validateCatalogs(catalogs); e != nil {
+		return nil, e
 	}
 	origin, e := url.Parse(a.origin)
 	if e != nil || origin.Scheme != "https" || origin.Host == "" || origin.User != nil || origin.RawQuery != "" || origin.ForceQuery || origin.Fragment != "" || origin.Path != "" {
@@ -117,6 +113,11 @@ func (a *Adapter) Acquire(ctx context.Context, catalogs []Catalog, stage string)
 				} else {
 					r.SHA256 = publisher.Hash(document)
 				}
+			}
+		}
+		if observe != nil {
+			if e = observe(r); e != nil {
+				return nil, e
 			}
 		}
 		if r.Code == "" {
@@ -190,4 +191,18 @@ func retryAt(value string, now time.Time) time.Time {
 		return date
 	}
 	return now.Add(time.Minute)
+}
+
+func validateCatalogs(catalogs []Catalog) error {
+	if len(catalogs) == 0 || len(catalogs) > MaxCatalogs {
+		return errors.New("catalog count must be 1..25")
+	}
+	seen, systems := map[string]bool{}, map[string]bool{}
+	for _, c := range catalogs {
+		if !catalogID.MatchString(c.ID) || !systemID.MatchString(c.System) || seen[c.ID] || systems[c.System] || strings.TrimSpace(c.ExpectedName) == "" || strings.TrimSpace(c.Platform) == "" || strings.TrimSpace(c.Representation) == "" || strings.TrimSpace(c.PolicyVersion) == "" || c.MinGames < 1 || c.MinROMs < 1 {
+			return errors.New("invalid or duplicate reviewed catalog identity")
+		}
+		seen[c.ID], systems[c.System] = true, true
+	}
+	return nil
 }
