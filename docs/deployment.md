@@ -66,6 +66,22 @@ out of Git, logs, Pages artifacts, and Releases. Key files use mode 0600.
 Back up the private directory securely before relying on this trust root.
 GitHub secret values cannot be recovered by reading the secret back.
 
+### 1Password key custody
+
+Keep a versioned 1Password item named `ROMD DAT catalogs — synthetic — root v1`.
+Store the exact public `1.root.json`, `offline-root.json`, and `online.json`
+contents in separately named fields or attachments. Mark both private JSON
+fields as concealed. Record the repository URL, root version, expiry, and
+SHA-256 fingerprint of the public root alongside them. These are TUF Ed25519
+keys, not SSH keys; preserve their JSON representation for the distribution CLI.
+
+Verify the saved values against the local files before the first publication.
+The root private key is for offline rotation only; never send it to GitHub.
+Only `online.json` supplies the `TUF_ONLINE_KEYS` Actions secret. Transfer secret
+values through stdin or private files, never command-line arguments, chat,
+logs, or committed templates. Never grant CI access to the 1Password root item.
+Retain each previous root version in 1Password during rotation.
+
 After the workflow and public root are merged, start the first deployment:
 
 ```sh
