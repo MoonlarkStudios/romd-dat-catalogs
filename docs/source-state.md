@@ -1,4 +1,4 @@
-# Durable local source state
+# Source state and explicit recovery
 
 `redump.NewScheduler(stateDirectory)` adds persistent admission to the acquisition
 library. It is not invoked by a CLI or workflow. Live upstream polling and public
@@ -44,9 +44,8 @@ publisher attempts. The caller still owns staging and the subsequent publication
 An interrupted run is deliberately not automatically retried after its default
 daily deadline: the process could have died after receiving a longer upstream
 Retry-After but before recording it. Preserve state and staging for inspection.
-An operator recovery/migration command is not implemented in this slice. Do not
-clear the in-flight marker or reset the directory without resolving the previous
-run's retry and candidate disposition.
+Use the explicit recovery command below after resolving the previous run.
+Registry migration remains unimplemented; do not reset state to bypass it.
 
 Acquisition completion and publication are separate transactions. A crash after
 completion but before publication does not guarantee replay of those candidates;
@@ -65,8 +64,56 @@ missing state, clock regression, a forced child-process exit, and contention
 against a separate process. `mise run check` includes race detection. These tests
 prove the tested process-level behavior, not NAS/filesystem power-loss durability.
 
-Ephemeral GitHub runners do not retain this directory. The signed public
-`state.zip` does not currently include source scheduling state. Before connecting
-CI polling, add its durable custody/restoration, interrupted-run recovery, and
-candidate-publication recovery, and qualify upstream transport and redistribution.
-The existing synthetic publication workflow is unchanged.
+## Explicit operator recovery
+
+`mise run build` builds `bin/source-state`, with `init`, `inspect`, and `recover`
+commands. It does not acquire or publish DATs. Initialize a reviewed catalog JSON
+array once with `bin/source-state init --registry reviewed-catalogs.json`.
+`bin/source-state inspect` returns the current digest, schedule, in-flight marker,
+and recovery count. The default directory is `.source-state/redump`; override
+it with `--state` consistently across commands.
+
+For an interrupted run, first stop the old runner, inspect its staging and logs,
+and establish the upstream retry window. Then use `recover` with all of:
+
+- `--expected-digest` from a fresh inspection;
+- `--not-before` as an RFC3339 date at or after both now and the saved deadline;
+- `--confirm-stopped`, `--confirm-retry-window`, and `--discard-candidates`.
+
+These flags record operator assertions; they do not terminate a runner, discover
+an unrecorded Retry-After, or delete staged files. Discarded unpublished candidates
+must not subsequently be published. Recovery preserves registry bindings and last
+admission, records the decision and count, and clears the in-flight marker. It
+does not fetch or publish. Stale reviews and shortened deadlines are rejected.
+Version 1 state is read without changing its schedule and becomes version 2 on
+its next successful write; version 2 includes recovery history's latest record
+and cumulative count.
+
+## Optional GitHub checkpoint custody
+
+`--remote-repo owner/repo` selects authoritative GitHub Contents API storage using
+`GITHUB_TOKEN` from the environment. Explicitly create the `source-state` branch
+before initialization; the checkpoint path is `redump-state.json`. The token
+needs repository contents write permission. Never include credentials in state.
+Public repository state and commit history are public, so use only nonsensitive
+catalog configuration and scheduling metadata.
+
+Remote operations read the checkpoint afresh and condition writes on its Git blob
+SHA. Missing state is an error except during explicit initialization. Admission
+must receive a matching write receipt before upstream access. Conflicting or
+ambiguous writes stop the operation; they are not automatically retried. An
+accepted write whose response was lost may leave the run marked interrupted for
+inspection. The local directory provides only a same-machine lock in this mode;
+remote conditional writes arbitrate separate runners.
+
+This is trusted operator state, not TUF-authenticated client distribution. It is
+separate from the signed publication's `state.zip`. Tests use local TLS fixtures
+and a conditional in-memory store for conflicts, ambiguous writes, retained retry
+deadlines, and recovery; no live GitHub checkpoint deployment has been verified.
+
+No acquisition CLI or polling workflow is enabled. The existing synthetic
+publication workflow is unchanged. Further infrastructure expansion is paused:
+next prove upstream acquisition, redistribution conditions, and complete coverage,
+then one real platform's update, diff, review, and activation in ROMD. A failed
+update may preserve the last working catalog and offer an explicit retry; full
+candidate replay is not a prerequisite for that beta experience.

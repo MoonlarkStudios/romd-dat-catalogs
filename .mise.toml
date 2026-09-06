@@ -9,7 +9,7 @@ GOTOOLCHAIN = "local"
 
 [tasks.build]
 description = "Build the publisher and signed distribution tools"
-run = ["go build -trimpath -o bin/publisher ./cmd/publisher", "go build -trimpath -o bin/distribution ./cmd/distribution"]
+run = ["go build -trimpath -o bin/publisher ./cmd/publisher", "go build -trimpath -o bin/distribution ./cmd/distribution", "go build -trimpath -o bin/source-state ./cmd/source-state"]
 
 [tasks.test]
 description = "Run offline and localhost integration tests with race detection"

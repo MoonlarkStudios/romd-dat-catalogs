@@ -20,17 +20,19 @@ var (
 	ErrBusy            = errors.New("source state is locked by another run")
 )
 
-const stateFormat = "romd-redump-state-1"
+const stateFormat = "romd-redump-state-2"
 const pollInterval = 24 * time.Hour
 const maxStateBytes = 1 << 20
 
 type sourceState struct {
-	Format      string    `json:"format"`
-	Origin      string    `json:"origin"`
-	Registry    []Catalog `json:"registry"`
-	InFlight    bool      `json:"inFlight"`
-	LastAttempt time.Time `json:"lastAttempt"`
-	NextAttempt time.Time `json:"nextAttempt"`
+	Format        string          `json:"format"`
+	Origin        string          `json:"origin"`
+	Registry      []Catalog       `json:"registry"`
+	InFlight      bool            `json:"inFlight"`
+	LastAttempt   time.Time       `json:"lastAttempt"`
+	NextAttempt   time.Time       `json:"nextAttempt"`
+	RecoveryCount uint64          `json:"recoveryCount,omitempty"`
+	Recovery      *RecoveryRecord `json:"recovery,omitempty"`
 }
 
 // Scheduler persists admission and provider cooldown on a local POSIX filesystem.
@@ -40,6 +42,7 @@ type Scheduler struct {
 	root    string
 	adapter *Adapter
 	now     func() time.Time
+	store   CheckpointStore
 }
 
 func NewScheduler(root string) *Scheduler {
@@ -64,7 +67,8 @@ func (s *Scheduler) Initialize(catalogs []Catalog) error {
 		return e
 	}
 	defer unlock()
-	return saveState(s.root, sourceState{Format: stateFormat, Origin: s.adapter.origin, Registry: canonical(catalogs)})
+	version := ""
+	return s.commit(context.Background(), sourceState{Format: stateFormat, Origin: s.adapter.origin, Registry: canonical(catalogs)}, &version)
 }
 
 // Run records in-flight admission before any network request. Runs without a
@@ -77,12 +81,17 @@ func (s *Scheduler) Run(ctx context.Context, catalogs []Catalog, stage string) (
 	if e := validateCatalogs(catalogs); e != nil {
 		return nil, e
 	}
+	if s.store != nil {
+		if e := os.MkdirAll(s.root, 0700); e != nil {
+			return nil, e
+		}
+	}
 	unlock, e := lockState(s.root)
 	if e != nil {
 		return nil, e
 	}
 	defer unlock()
-	state, e := readState(s.root)
+	state, version, e := s.load(ctx)
 	if e != nil {
 		return nil, e
 	}
@@ -105,13 +114,13 @@ func (s *Scheduler) Run(ctx context.Context, catalogs []Catalog, stage string) (
 	state.InFlight = true
 	state.LastAttempt = now
 	state.NextAttempt = now.Add(pollInterval)
-	if e = saveState(s.root, state); e != nil {
+	if e = s.commit(ctx, state, &version); e != nil {
 		return nil, e
 	}
 	results, e := s.adapter.acquire(ctx, canonical(catalogs), stage, func(r Result) error {
 		if r.RetryAt.After(state.NextAttempt) {
 			state.NextAttempt = r.RetryAt
-			return saveState(s.root, state)
+			return s.commit(ctx, state, &version)
 		}
 		return nil
 	})
@@ -119,7 +128,7 @@ func (s *Scheduler) Run(ctx context.Context, catalogs []Catalog, stage string) (
 		return nil, e
 	}
 	state.InFlight = false
-	if e = saveState(s.root, state); e != nil {
+	if e = s.commit(ctx, state, &version); e != nil {
 		return nil, e
 	}
 	return results, nil
@@ -135,17 +144,32 @@ func readState(root string) (sourceState, error) {
 	if e != nil {
 		return state, e
 	}
+	return decodeState(raw)
+}
+func decodeState(raw []byte) (sourceState, error) {
+	var state sourceState
 	if len(raw) > maxStateBytes {
 		return state, errors.New("source state size limit")
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
-	if e = decoder.Decode(&state); e != nil {
+	if e := decoder.Decode(&state); e != nil {
 		return state, e
 	}
 	var extra any
-	if e = decoder.Decode(&extra); e != io.EOF {
+	if e := decoder.Decode(&extra); e != io.EOF {
 		return state, errors.New("trailing source state data")
+	}
+	if state.Format == "romd-redump-state-1" && state.Recovery == nil && state.RecoveryCount == 0 {
+		state.Format = stateFormat
+	}
+	if (state.RecoveryCount == 0) != (state.Recovery == nil) {
+		return state, errors.New("invalid recovery history")
+	}
+	if r := state.Recovery; r != nil {
+		if r.Disposition != "discard-unpublished-candidates" || r.At.Before(r.InterruptedAttempt) || r.At.After(r.NotBefore) || r.InterruptedAttempt.IsZero() || r.InterruptedAttempt.After(state.LastAttempt) || r.NotBefore.Before(r.InterruptedAttempt.Add(pollInterval)) || r.NotBefore.After(state.NextAttempt) {
+			return state, errors.New("invalid recovery record")
+		}
 	}
 	if state.Format != stateFormat || state.Origin == "" || validateCatalogs(state.Registry) != nil || !reflect.DeepEqual(state.Registry, canonical(state.Registry)) {
 		return state, errors.New("invalid source state")
