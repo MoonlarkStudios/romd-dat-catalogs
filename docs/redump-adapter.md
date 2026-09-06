@@ -1,7 +1,9 @@
 # Redump acquisition library
 
-`internal/redump` implements the first acquisition layer. No CLI or scheduled
-workflow calls it, and no upstream DATs are published by this change. Tests
+`internal/redump` implements the first acquisition layer. The explicit
+`publisher --output DIR redump-psx` command calls it for the reviewed PlayStation
+identity; no scheduled workflow calls it and no upstream DATs are publicly
+published. See [the candidate trial](romd-candidate.md). Tests
 use synthetic data and local HTTP servers. The adapter explicitly targets
 `http://redump.org`, matching the upstream-supported transport. It does not first
 try HTTPS or perform a fallback. Publisher signatures authenticate the published

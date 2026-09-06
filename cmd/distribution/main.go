@@ -5,9 +5,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/distribution"
@@ -15,7 +17,7 @@ import (
 
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("commands: init, rotate, stage, restore, verify-assets")
+		return errors.New("commands: init, rotate, stage, restore, verify-assets, candidate")
 	}
 	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	switch args[0] {
@@ -94,6 +96,72 @@ func run(args []string) error {
 			return e
 		}
 		return distribution.RestoreState(index, raw, *state)
+	case "candidate":
+		root := fs.String("root", "trust/1.root.json", "independently pinned public root")
+		site := fs.String("site", "", "HTTPS publisher site")
+		bundle := fs.String("bundle", "", "local signed Stage bundle; exclusive with --site")
+		cache := fs.String("cache", "", "persistent cache dedicated to this publisher/trust root")
+		id := fs.String("catalog", "", "exact stable catalog ID")
+		name := fs.String("name", "", "expected DAT header name")
+		out := fs.String("out", "", "new candidate directory")
+		if e := fs.Parse(args[1:]); e != nil {
+			return e
+		}
+		if fs.NArg() != 0 || *cache == "" || *id == "" || *name == "" || *out == "" || (*site == "") == (*bundle == "") {
+			return errors.New("candidate requires root, cache, catalog, name, out, and exactly one of site/bundle")
+		}
+		var client *http.Client
+		if *bundle != "" {
+			client = distribution.BundleClient(*bundle)
+			*site = distribution.BundleSite
+		} else if !strings.HasPrefix(*site, "https://") {
+			return errors.New("HTTPS site required")
+		}
+		rootBytes, e := os.ReadFile(*root)
+		if e != nil {
+			return e
+		}
+		if e = os.MkdirAll(*cache, 0700); e != nil {
+			return e
+		}
+		gate, e := os.OpenFile(filepath.Join(*cache, "candidate.lock"), os.O_CREATE|os.O_RDWR, 0600)
+		if e != nil {
+			return e
+		}
+		defer gate.Close()
+		if e = syscall.Flock(int(gate.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); e != nil {
+			return errors.New("candidate cache is in use; retry after the active reader finishes")
+		}
+		defer syscall.Flock(int(gate.Fd()), syscall.LOCK_UN)
+		index, e := distribution.RefreshIndex(rootBytes, strings.TrimRight(*site, "/"), *cache, client)
+		if e != nil {
+			return e
+		}
+		candidate, document, e := distribution.ReadCandidate(index, *id, *name, client)
+		if e != nil {
+			return e
+		}
+		if e = os.Mkdir(*out, 0700); e != nil {
+			return e
+		}
+		complete := false
+		defer func() {
+			if !complete {
+				os.RemoveAll(*out)
+			}
+		}()
+		if e = os.WriteFile(filepath.Join(*out, "candidate.dat"), document, 0600); e != nil {
+			return e
+		}
+		info, e := json.Marshal(candidate)
+		if e != nil {
+			return e
+		}
+		if e = os.WriteFile(filepath.Join(*out, "candidate.json"), info, 0600); e != nil {
+			return e
+		}
+		complete = true
+		return nil
 	case "verify-assets":
 		indexPath := fs.String("index", "staged/index.json", "locally staged index")
 		if e := fs.Parse(args[1:]); e != nil {
