@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -83,13 +85,59 @@ func TestInitAndStageCLI(t *testing.T) {
 			t.Fatal(e)
 		}
 	}
+	referenceOut := filepath.Join(dir, "reference")
+	referenceArgs := []string{"reference-data", "--root", filepath.Join(keys, "public", "1.root.json"), "--bundle", gitStage, "--cache", filepath.Join(dir, "reference-cache"), "--out", referenceOut}
+	// The Pages alias is not trusted. The reader must use verified index bytes.
+	if err := os.WriteFile(filepath.Join(gitStage, "site/reference-data.json"), []byte(`{"untrusted":true}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := run(referenceArgs); err != nil {
+		t.Fatal(err)
+	}
+	reference, err := os.ReadFile(filepath.Join(referenceOut, "reference-data.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	publication, err := os.ReadFile(filepath.Join(referenceOut, "catalog.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parsed struct {
+		Version     int64           `json:"version"`
+		Definitions json.RawMessage `json:"definitions"`
+	}
+	if err := json.Unmarshal(publication, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	if parsed.Version != 2 || !bytes.Equal(reference, parsed.Definitions) {
+		t.Fatal("reference bytes/version do not match authenticated publication")
+	}
+	var seeds struct {
+		SchemaVersion int
+		Systems       map[string]json.RawMessage
+	}
+	if err := json.Unmarshal(reference, &seeds); err != nil || seeds.SchemaVersion != 2 || len(seeds.Systems) != 56 {
+		t.Fatal("incomplete seeds", err)
+	}
+	if err := run(referenceArgs); err == nil {
+		t.Fatal("overwrote existing reference output")
+	}
+	referenceArgs[len(referenceArgs)-1] = filepath.Join(dir, "legacy-reference")
+	referenceArgs[4] = staged
+	referenceArgs[6] = filepath.Join(dir, "legacy-reference-cache")
+	if err := run(referenceArgs); err == nil || !strings.Contains(err.Error(), "no shared reference data") {
+		t.Fatal("expected a verified legacy publication without shared data", err)
+	}
+	if _, err := os.Stat(referenceArgs[len(referenceArgs)-1]); !os.IsNotExist(err) {
+		t.Fatal("failed reference check wrote output")
+	}
 	if _, e := os.Stat(filepath.Join(gitStage, "assets")); !os.IsNotExist(e) {
 		t.Fatal("Git CLI emitted legacy assets")
 	}
 }
 
 func TestCommandValidation(t *testing.T) {
-	for _, args := range [][]string{nil, {"unknown"}, {"init"}, {"stage", "--keys", "missing"}, {"restore", "--site", "http://example.invalid"}} {
+	for _, args := range [][]string{nil, {"unknown"}, {"init"}, {"stage", "--keys", "missing"}, {"restore", "--site", "http://example.invalid"}, {"reference-data"}, {"reference-data", "--site", "https://example.invalid", "--cache", "unused", "--out", "unused", "--catalog", "redump/psx/discs"}} {
 		if e := run(args); e == nil {
 			t.Fatalf("accepted %v", args)
 		}
