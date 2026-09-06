@@ -1,7 +1,12 @@
 # One PlayStation candidate into ROMD review
 
-This increment exposes the existing acquisition/signing/client layers for an
-operator-reviewed trial. It does not enable scheduled upstream publication.
+The candidate reader supports Git-backed signed format 2 and the existing
+format-1 local demo bundles. Rebuild older readers before switching the public
+index; the JSON contract consumed by ROMD is unchanged. Public acquisition
+remains gated by upstream qualification.
+
+The following legacy bundle commands are for private local demos only. Public
+publishing uses the Git-backed workflow in [deployment.md](deployment.md).
 
 ```sh
 mise run check
@@ -52,18 +57,15 @@ SHA-256 `0d5cffb7feb15aa4297ccaf722c62d2b08f17eb859d6ab7890088d481bf8a18e`.
 This measures one document, not actual change frequency. One demo addition was
 explicitly synthetic and must not be counted as an observed upstream update.
 
-The current release publisher still republishes referenced full artifacts and a
-recovery archive. Keep that prototype limitation out of broad source deployment.
-Before expanding coverage:
+The public storage model is now complete, uncompressed DATs at stable platform
+paths in a separate Git repository. Only extracted-document changes produce
+commits. Signed indexes bind full commit URLs and document hashes; Pages carries
+the index and latest-only RSS. No routine Release assets or recovery archives
+are produced. Historical browsing and publisher rollback are not beta goals.
+Git retains history without trimming; measure repository growth and real update
+frequency before adding storage machinery. Never rewrite history while signed
+indexes may reference those commits. ROMD retains its active document locally.
 
-- Reuse compressed immutable artifacts across publications. Identical extracted
-  hashes deduplicate content; changed documents still need full artifacts.
-- Budget retained full history: current and previous plus a modest recent window.
-- Keep lightweight hashes, dates, versions, and change summaries longer term.
-- Delete expired artifacts separately, only after checking references from every
-  retained index. Installed ROMD catalogs must not depend on publisher retention.
-
-No retention engine, delta patches, registry migration, or remote scheduling
-expansion is added by this slice. Existing Go checks and smoke passed, including
-new candidate binding/tampering/root/CLI tests. See the ROMD trial documentation
-for application activation evidence; library tests alone do not establish it.
+Existing local Release-style bundles remain supported for the private demo;
+this does not make them the public storage model. No additional scheduling,
+checkpointing, or recovery framework is introduced.

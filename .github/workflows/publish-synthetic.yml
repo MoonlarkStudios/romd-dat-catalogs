@@ -1,17 +1,26 @@
-name: Publish synthetic catalogs
+name: Publish catalogs
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
+      tooling_ref:
+        description: Full commit of the tooling checkout; match the caller's uses pin
+        required: true
+        type: string
       bootstrap:
-        description: First deployment only; requires no existing public timestamp
+        description: New independent deployment only; never resets an existing site
         type: boolean
         default: false
-  schedule:
-    - cron: '37 4 * * *'
+      migration_site:
+        description: Existing signed site to restore for the first data-repo deployment only
+        type: string
+        default: ''
+    secrets:
+      TUF_ONLINE_KEYS:
+        required: true
 
 concurrency:
-  group: synthetic-catalog-publication
+  group: dat-catalog-publication
   cancel-in-progress: false
 
 permissions:
@@ -19,7 +28,7 @@ permissions:
 
 jobs:
   publish:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.SYNTHETIC_PUBLISH_ENABLED == 'true')
+    if: github.ref == 'refs/heads/main' && github.repository != 'MoonlarkStudios/romd-dat-catalogs'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -30,7 +39,15 @@ jobs:
       pages: write
       id-token: write
     steps:
+      - name: Validate tooling pin
+        env:
+          TOOLING_REF: ${{ inputs.tooling_ref }}
+        run: '[[ "$TOOLING_REF" =~ ^[0-9a-f]{40}$ ]]'
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: MoonlarkStudios/romd-dat-catalogs
+          ref: ${{ inputs.tooling_ref }}
+          persist-credentials: false
       - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
         with:
           version: '2026.8.8'
@@ -42,43 +59,68 @@ jobs:
       - name: Restore authenticated prior state
         env:
           SITE: ${{ steps.pages.outputs.base_url }}
-          BOOTSTRAP: ${{ inputs.bootstrap || false }}
+          BOOTSTRAP: ${{ inputs.bootstrap }}
+          MIGRATION_SITE: ${{ inputs.migration_site }}
         run: |
-          set -euo pipefail
-          if [ "$BOOTSTRAP" = true ]; then
-            status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 30 "$SITE/metadata/timestamp.json")
-            test "$status" = 404
-          else
-            ./bin/distribution restore --site "$SITE" --root trust/1.root.json --state output
-          fi
+          ./bin/distribution restore --site "$SITE" --root trust/1.root.json --state output --bootstrap="$BOOTSTRAP" --migration-site "$MIGRATION_SITE"
       - name: Publish synthetic local candidate
         run: ./bin/publisher --output output fixtures/manifest.json
+      - name: Check PSX or record publication pause
+        env:
+          PSX_ENABLED: ${{ vars.REDUMP_PSX_PUBLISH_ENABLED }}
+        run: |
+          set -euo pipefail
+          if [ "$PSX_ENABLED" = true ]; then
+            ./bin/publisher --output output redump-psx > publication-summary.json
+          else
+            ./bin/publisher --output output --paused redump-psx > publication-summary.json
+          fi
+          {
+            printf '### Catalog acquisition result\n\n```json\n'
+            cat publication-summary.json
+            printf '\n```\n\nAcquisition failures preserve the last working artifact. Deployment is verified in subsequent steps.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Check out data repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 0
+      - name: Commit changed documents
+        id: data
+        run: |
+          set -euo pipefail
+          ./bin/distribution export-data --state output --out data
+          git -C data config user.name 'ROMD catalog publisher'
+          git -C data config user.email 'catalog-publisher@users.noreply.github.com'
+          git -C data -c core.autocrlf=false add -- '*.dat'
+          if ! git -C data diff --cached --quiet; then
+            git -C data commit -m 'chore(data): update complete catalogs'
+            git -C data push
+          fi
+          printf 'commit=%s\n' "$(git -C data rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          git -C data count-objects -vH >> "$GITHUB_STEP_SUMMARY"
       - name: Stage and sign
         id: stage
         env:
           TUF_ONLINE_KEYS: ${{ secrets.TUF_ONLINE_KEYS }}
+          DATA_REPOSITORY: ${{ github.repository }}
+          DATA_COMMIT: ${{ steps.data.outputs.commit }}
         run: |
           set -euo pipefail
           test -n "$TUF_ONLINE_KEYS"
-          test "$GITHUB_RUN_ATTEMPT" -lt 1000
-          version=$((GITHUB_RUN_NUMBER * 1000 + GITHUB_RUN_ATTEMPT))
-          tag="synthetic-$version"
+          previous=0
+          if [ -f output/.distribution-version ]; then
+            previous=$(cat output/.distribution-version)
+          fi
+          version=$((previous + 1))
+          test "$version" -gt "$previous"
           keyfile="$RUNNER_TEMP/tuf-online.json"
           umask 077
           printf '%s' "$TUF_ONLINE_KEYS" > "$keyfile"
           trap 'rm -f "$keyfile"' EXIT
-          ./bin/distribution stage --keys "$keyfile" --trust trust --state output --out staged --version "$version" --release-base "https://github.com/$GITHUB_REPOSITORY/releases/download/$tag"
-          printf 'tag=%s\n' "$tag" >> "$GITHUB_OUTPUT"
+          ./bin/distribution stage --keys "$keyfile" --trust trust --state output --out staged --version "$version" --data-repository "$DATA_REPOSITORY" --data-commit "$DATA_COMMIT"
           printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
-      - name: Upload versioned Release assets
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.stage.outputs.tag }}
-        run: |
-          set -euo pipefail
-          gh release create "$TAG" --target "$GITHUB_SHA" --draft --title "Synthetic catalogs $TAG" --notes "Signed synthetic test catalogs. No upstream DATs."
-          gh release upload "$TAG" staged/assets/*
-          gh release edit "$TAG" --draft=false --latest=false
       - name: Verify public asset availability and hashes
         run: ./bin/distribution verify-assets --index staged/index.json
       - name: Upload verified Pages deployment

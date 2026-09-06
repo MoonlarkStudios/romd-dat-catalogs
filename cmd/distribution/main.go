@@ -17,7 +17,7 @@ import (
 
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("commands: init, rotate, stage, restore, verify-assets, candidate")
+		return errors.New("commands: init, rotate, stage, restore, verify-assets, candidate, export-data")
 	}
 	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	switch args[0] {
@@ -45,12 +45,24 @@ func run(args []string) error {
 			}
 		}
 		return distribution.Initialize(*out, time.Now().UTC(), b, k)
+	case "export-data":
+		state := fs.String("state", "output", "local publisher state")
+		out := fs.String("out", "", "data repository checkout")
+		if e := fs.Parse(args[1:]); e != nil {
+			return e
+		}
+		if *out == "" || fs.NArg() != 0 {
+			return errors.New("--out data checkout required")
+		}
+		return distribution.ExportData(*state, *out)
 	case "stage":
 		state := fs.String("state", "output", "local publisher state")
 		trust := fs.String("trust", "trust", "public roots directory")
 		keys := fs.String("keys", "", "online signing keys file")
 		out := fs.String("out", "staged", "new staging directory")
 		release := fs.String("release-base", "", "immutable release asset base URL")
+		repository := fs.String("data-repository", "", "GitHub owner/repo containing complete DATs")
+		commit := fs.String("data-commit", "", "full pushed data commit SHA")
 		version := fs.Int64("version", 0, "monotonic metadata version")
 		if e := fs.Parse(args[1:]); e != nil {
 			return e
@@ -59,7 +71,16 @@ func run(args []string) error {
 		if e != nil {
 			return e
 		}
-		index, e := distribution.Stage(distribution.StageOptions{State: *state, TrustDir: *trust, Output: *out, ReleaseBase: *release, Keys: k, Version: *version, Now: time.Now().UTC()})
+		opt := distribution.StageOptions{State: *state, TrustDir: *trust, Output: *out, ReleaseBase: *release, Keys: k, Version: *version, Now: time.Now().UTC()}
+		var index distribution.Index
+		if *repository != "" || *commit != "" {
+			if *release != "" {
+				return errors.New("Git publication and legacy release mode are exclusive")
+			}
+			index, e = distribution.StageGit(opt, *repository, *commit)
+		} else {
+			index, e = distribution.Stage(opt)
+		}
 		if e != nil {
 			return e
 		}
@@ -74,6 +95,8 @@ func run(args []string) error {
 		cache := fs.String("cache", ".client-cache", "persistent TUF client cache")
 		state := fs.String("state", "output", "new publisher state directory")
 		expected := fs.Int64("expected-version", 0, "require an exact deployed metadata version")
+		bootstrap := fs.Bool("bootstrap", false, "new independent site only; require destination HTTP 404")
+		migration := fs.String("migration-site", "", "old signed site, only while destination does not exist")
 		if e := fs.Parse(args[1:]); e != nil {
 			return e
 		}
@@ -84,18 +107,21 @@ func run(args []string) error {
 		if e != nil {
 			return e
 		}
-		index, e := distribution.RefreshIndex(b, strings.TrimRight(*site, "/"), *cache, nil)
+		origin, e := distribution.RestoreOrigin(*site, *migration, *bootstrap, nil)
+		if e != nil {
+			return e
+		}
+		if origin == "" {
+			return nil
+		} // Explicit first deployment; publisher initializes local state.
+		index, e := distribution.RefreshIndex(b, strings.TrimRight(origin, "/"), *cache, nil)
 		if e != nil {
 			return e
 		}
 		if *expected != 0 && index.Version != *expected {
 			return errors.New("deployed publication version does not match expected version")
 		}
-		raw, e := distribution.FetchAsset(index.State, nil)
-		if e != nil {
-			return e
-		}
-		return distribution.RestoreState(index, raw, *state)
+		return distribution.RestorePublication(index, *state, nil)
 	case "candidate":
 		root := fs.String("root", "trust/1.root.json", "independently pinned public root")
 		site := fs.String("site", "", "HTTPS publisher site")
@@ -175,13 +201,7 @@ func run(args []string) error {
 		if e = json.Unmarshal(b, &index); e != nil {
 			return e
 		}
-		for _, asset := range index.Downloads {
-			if _, e = distribution.FetchAsset(asset, nil); e != nil {
-				return e
-			}
-		}
-		_, e = distribution.FetchAsset(index.State, nil)
-		return e
+		return distribution.VerifyDownloads(index, nil)
 	default:
 		return errors.New("unknown distribution command")
 	}

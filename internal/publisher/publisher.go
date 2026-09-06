@@ -262,6 +262,9 @@ func Publish(root string, attempts []Attempt, baseURL string, opt Options) (Snap
 		var candidateErr error
 		if a.Failure != nil {
 			candidateErr = CandidateError("acquisition_failed")
+			if *a.Failure == "publication_paused" {
+				candidateErr = CandidateError("publication_paused")
+			}
 		} else {
 			raw, candidateErr = readFile(*a.Path, MaxInput)
 			if candidateErr == nil {

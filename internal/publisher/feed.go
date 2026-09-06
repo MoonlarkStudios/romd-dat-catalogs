@@ -40,7 +40,7 @@ type item struct {
 }
 
 func feedBytes(events []Event, base string) ([]byte, error) {
-	r := rss{Version: "2.0", Namespace: Namespace, Channel: channel{Title: "ROMD DAT catalogs (development)", Link: base, Description: "Synthetic, unsigned DAT publication prototype"}}
+	r := rss{Version: "2.0", Namespace: Namespace, Channel: channel{Title: "ROMD DAT catalogs (development)", Link: base, Description: "Catalog document changes; verify signed distribution metadata before applying updates"}}
 	for _, e := range events {
 		at, err := time.Parse(time.RFC3339Nano, e.PublishedAt)
 		if err != nil {

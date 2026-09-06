@@ -10,8 +10,11 @@ belongs in ROMD's library layer.
 
 The local publisher still emits explicitly unsigned intermediate state. The
 distribution command wraps it with TUF-authenticated catalog/feed targets for
-GitHub Releases and Pages. A [Redump acquisition library](docs/redump-adapter.md)
-is tested against synthetic servers but is not wired into live polling. No
+GitHub Pages. The pending workflow stores complete uncompressed DATs in a
+separate public data repository and signs full-commit raw URLs. That repository
+also hosts Pages/RSS, calling a pinned reusable workflow from this tooling repo; routine Releases
+and recovery archives are no longer the storage model. The [Redump acquisition
+library](docs/redump-adapter.md) has a gated PSX workflow path. No
 public upstream DAT mirrors are enabled. An operator-driven [candidate reader](docs/romd-candidate.md)
 is available for the first ROMD review integration. Do not enable production
 AutoApply against synthetic catalogs.
@@ -61,8 +64,7 @@ of header-only or formatting-only changes is a separate future feature.
 XML validation reads tokens without a full document tree, although the bounded
 original document and a set of game names remain in memory. UTF-8 XML is
 supported; other declared encodings fail closed pending explicit qualification.
-The full archive and retained-object verification paths still need large-catalog
-qualification. To measure the synthetic 10,000-game parser workload:
+The full-source acquisition path still needs large-catalog qualification. To measure the synthetic 10,000-game parser workload:
 
 ```sh
 mise run bench

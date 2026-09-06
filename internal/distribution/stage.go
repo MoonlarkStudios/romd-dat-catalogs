@@ -32,7 +32,7 @@ type Index struct {
 	Format    string             `json:"format"`
 	Version   int64              `json:"version"`
 	Snapshot  publisher.Snapshot `json:"snapshot"`
-	State     Asset              `json:"state"`
+	State     Asset              `json:"state,omitzero"`
 	Downloads map[string]Asset   `json:"downloads"`
 }
 type StageOptions struct {
@@ -123,7 +123,7 @@ func Stage(opt StageOptions) (Index, error) {
 	for _, name := range names {
 		ref := required[name]
 		if ref.Bytes < 0 || ref.Bytes > MaxState-total {
-			return result, errors.New("synthetic state limit exceeded")
+			return result, errors.New("publication state limit exceeded")
 		}
 		b, e := publisher.VerifiedRead(opt.State, ref)
 		if e != nil {
@@ -163,10 +163,6 @@ func Stage(opt StageOptions) (Index, error) {
 	if e = save(opt.Output, "assets/state.zip", archive.Bytes()); e != nil {
 		return result, e
 	}
-	indexBytes, e := json.Marshal(result)
-	if e != nil {
-		return result, e
-	}
 	feed, e := publisher.VerifiedRead(opt.State, snapshot.Feed)
 	if e != nil {
 		return result, e
@@ -179,6 +175,18 @@ func Stage(opt StageOptions) (Index, error) {
 	// The RSS channel itself links to the companion repository.
 	repositoryURL := strings.Split(release, "/releases/download/")[0] + "/"
 	feed = bytes.ReplaceAll(feed, []byte("https://catalogs.example.invalid/"), []byte(repositoryURL))
+	return signIndex(opt, result, feed)
+}
+
+func signIndex(opt StageOptions, result Index, feed []byte) (Index, error) {
+	root, e := readRoot(opt.TrustDir)
+	if e != nil {
+		return result, e
+	}
+	indexBytes, e := json.Marshal(result)
+	if e != nil {
+		return result, e
+	}
 	targets := metadata.Targets(opt.Now.Add(30 * 24 * time.Hour))
 	targets.Signed.Version = opt.Version
 	site := filepath.Join(opt.Output, "site")
@@ -261,7 +269,7 @@ func Stage(opt StageOptions) (Index, error) {
 			}
 		}
 	}
-	if e = save(site, "index.html", []byte("<!doctype html><meta charset=utf-8><title>ROMD synthetic catalogs</title><h1>ROMD synthetic catalog publisher</h1><p>Signed test metadata only. No upstream DATs are distributed.</p><p><a href=feed.xml>RSS feed</a></p>")); e != nil {
+	if e = save(site, "index.html", []byte("<!doctype html><meta charset=utf-8><title>ROMD DAT catalogs</title><h1>ROMD DAT catalog publisher</h1><p>Signed catalog updates. Consult the authenticated catalog index for available sources and acquisition health. RSS is a notification feed; clients verify signed metadata before applying updates.</p><p><a href=feed.xml>RSS feed</a></p>")); e != nil {
 		return result, e
 	}
 	return result, nil

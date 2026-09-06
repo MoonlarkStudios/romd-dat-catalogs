@@ -39,6 +39,9 @@ func ReadCandidate(index Index, id, name string, client *http.Client) (Candidate
 	if !ok || !strings.HasSuffix(ref.Path, ".dat") || asset.Bytes != ref.Bytes || asset.SHA256 != ref.SHA256 || ref.Bytes < 1 || ref.Bytes > publisher.MaxDocument {
 		return result, nil, errors.New("catalog artifact binding is invalid")
 	}
+	if index.Format == GitFormat && !gitAssetURL.MatchString(asset.URL) {
+		return result, nil, errors.New("expected immutable Git document URL")
+	}
 	raw, err := FetchAsset(asset, client)
 	if err != nil {
 		return result, nil, err

@@ -1,0 +1,31 @@
+name: Publish DAT data and Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: New independent deployment only (not the existing site migration)
+        type: boolean
+        default: false
+      migration_site:
+        description: Old signed site for the first migration only; leave empty afterward
+        type: string
+        default: ''
+  schedule:
+    - cron: '37 4 * * *'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.DAT_PUBLISH_ENABLED == 'true')
+    uses: MoonlarkStudios/romd-dat-catalogs/.github/workflows/publish-synthetic.yml@8f078cde12346878c6886ba4407d419c0b9d7f15
+    with:
+      tooling_ref: '8f078cde12346878c6886ba4407d419c0b9d7f15'
+      bootstrap: ${{ inputs.bootstrap || false }}
+      migration_site: ${{ inputs.migration_site || '' }}
+    secrets:
+      TUF_ONLINE_KEYS: ${{ secrets.TUF_ONLINE_KEYS }}

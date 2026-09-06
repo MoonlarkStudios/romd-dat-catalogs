@@ -60,7 +60,7 @@ func RefreshIndex(root []byte, site, cache string, client *http.Client) (Index, 
 	if e = json.Unmarshal(b, &index); e != nil {
 		return index, e
 	}
-	if index.Format != "romd-signed-catalog-1" || index.Version < 1 {
+	if (index.Format != "romd-signed-catalog-1" && index.Format != GitFormat) || index.Version < 1 {
 		return index, errors.New("unsupported signed catalog")
 	}
 	return index, nil
@@ -69,8 +69,8 @@ func RefreshIndex(root []byte, site, cache string, client *http.Client) (Index, 
 var assetURL = regexp.MustCompile(`^https://github.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/releases/download/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`)
 
 func FetchAsset(a Asset, client *http.Client) ([]byte, error) {
-	if !assetURL.MatchString(a.URL) {
-		return nil, errors.New("expected public GitHub Release asset URL")
+	if !assetURL.MatchString(a.URL) && !gitAssetURL.MatchString(a.URL) {
+		return nil, errors.New("expected immutable public GitHub asset URL")
 	}
 	if a.Bytes < 1 || a.Bytes > MaxState {
 		return nil, errors.New("asset size limit")
