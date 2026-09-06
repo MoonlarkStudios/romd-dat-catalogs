@@ -4,7 +4,7 @@ Companion publisher for ROMD's planned one-click No-Intro and Redump DAT
 subscriptions. Complete upstream catalogs come first; future 1G1R filtering
 belongs in ROMD's library layer.
 
-**Current status: live signed synthetic publisher.**
+**Current status: signed PSX/synthetic distribution; No-Intro SNES acquisition in qualification.**
 [Public RSS](https://moonlarkstudios.github.io/romd-dat-data/feed.xml) ·
 [Deployment runbook](docs/deployment.md)
 
@@ -14,8 +14,11 @@ GitHub Pages. The live workflow stores complete uncompressed DATs in a
 separate public data repository and signs full-commit raw URLs. That repository
 also hosts Pages/RSS, calling a pinned reusable workflow from this tooling repo; routine Releases
 and recovery archives are no longer the storage model. The [Redump acquisition
-library](docs/redump-adapter.md) has a gated PSX workflow path. No
-public upstream DAT mirrors are enabled. An operator-driven [candidate reader](docs/romd-candidate.md)
+library](docs/redump-adapter.md) has a qualified PSX workflow path. No
+additional public upstream DAT mirrors are enabled.
+The [No-Intro SNES adapter](docs/nointro-snes-qualification.md) has demonstrated
+anonymous official acquisition and local publication; its public mirror remains
+gated on redistribution and completeness qualification. An operator-driven [candidate reader](docs/romd-candidate.md)
 is available for the first ROMD review integration. Do not enable production
 AutoApply against synthetic catalogs.
 

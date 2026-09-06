@@ -490,3 +490,18 @@ func TestRetryGuidancePreservesArtifactAndClearsOnSuccess(t *testing.T) {
 		t.Fatal("successful identical document must clear backoff without an update event")
 	}
 }
+
+func TestDatomaticPublicProvenanceOnly(t *testing.T) {
+	good := "https://datomatic.no-intro.org/index.php?page=download&op=dat&s=49"
+	if !publicSourceURL(good) {
+		t.Fatal("public selection URL rejected")
+	}
+	for _, bad := range []string{good + "&token=secret", good + "#fragment", strings.Replace(good, "page=download&op=dat&s=49", "page=manager&s=49&download=1", 1), strings.Replace(good, "https://", "http://", 1), strings.Replace(good, "datomatic.no-intro.org", "user:password@datomatic.no-intro.org", 1), good + "&s=24"} {
+		if publicSourceURL(bad) {
+			t.Fatal("private or ambiguous provenance allowed")
+		}
+	}
+	if publicURL(good, true) {
+		t.Fatal("base URL query restrictions weakened")
+	}
+}

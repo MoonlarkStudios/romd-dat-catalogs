@@ -200,6 +200,14 @@ func publicURL(value string, httpsOnly bool) bool {
 	return e == nil && u.Hostname() != "" && u.User == nil && u.RawQuery == "" && !u.ForceQuery && u.Fragment == "" && (u.Scheme == "https" || (!httpsOnly && u.Scheme == "http"))
 }
 
+// Permit only the public Datomatic selection query, never session/download
+// tokens or arbitrary query parameters that could carry credentials.
+var datomaticSource = regexp.MustCompile(`^https://datomatic\.no-intro\.org/index\.php\?page=download&op=dat&s=[1-9][0-9]{0,5}$`)
+
+func publicSourceURL(value string) bool {
+	return publicURL(value, false) || datomaticSource.MatchString(value)
+}
+
 func Publish(root string, attempts []Attempt, baseURL string, opt Options) (Snapshot, error) {
 	var empty Snapshot
 	if !publicURL(baseURL, true) {
@@ -227,7 +235,7 @@ func Publish(root string, attempts []Attempt, baseURL string, opt Options) (Snap
 			}
 		}
 		seen[a.CatalogID] = true
-		if a.ExpectedName == "" || !publicURL(a.SourceURL, false) || (a.Path == nil) == (a.Failure == nil) {
+		if a.ExpectedName == "" || !publicSourceURL(a.SourceURL) || (a.Path == nil) == (a.Failure == nil) {
 			return empty, errors.New("invalid registry attempt")
 		}
 	}

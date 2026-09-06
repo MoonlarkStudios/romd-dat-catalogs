@@ -14,14 +14,13 @@ definitions/
 Each file is a dictionary, without a repeated ID inside each entry. The loader
 assembles all five files into one schema-versioned snapshot. Keys are
 stable IDs; catalog `systemId` references our system ID, while
-`providerSystemId` selects the provider's distinct identifier. Only the complete
-PSX disc catalog is defined initially. Emulator configuration, BIOS requirements,
+`providerSystemId` selects the provider's distinct identifier. The registry defines the PSX disc catalog and the gated No-Intro SNES
+standard catalog (`snes`, Datomatic `49`). Emulator configuration, BIOS requirements,
 and ROMD database IDs/user settings do not belong in these definitions.
 
 Go implements acquisition and validation behavior. Data selects an implemented
-provider; it cannot supply arbitrary URLs, scripts, or plugins. Redump endpoint
-construction, HTTP-only transport, resource limits, and ZIP/XML parsing remain
-in its adapter. Count floors are anomaly checks, not proof of completeness.
+provider; it cannot supply arbitrary URLs, scripts, or plugins. Provider endpoint construction, transport, resource limits, and ZIP/XML parsing
+remain in their adapters. No platform routing is hard-coded in Go. Count floors are anomaly checks, not proof of completeness.
 
 ```sh
 mise run check
@@ -49,8 +48,10 @@ published versions are never downloaded and mixed by consumers.
 CI validates the committed definition through tests; publication explicitly
 validates definitions before restoring or acquiring any source.
 
-Publication selection is separate: the workflow still selects only
-`redump/psx/discs` and requires `REDUMP_PSX_PUBLISH_ENABLED=true`. Adding a
+Publication selection is separate: the workflow selects
+`redump/psx/discs` with `REDUMP_PSX_PUBLISH_ENABLED=true` and
+`no-intro/snes/standard` with `NOINTRO_SNES_PUBLISH_ENABLED=true`. The latter
+must remain disabled pending [No-Intro qualification](nointro-snes-qualification.md). Adding a
 catalog definition does not opt it into acquisition or public mirroring.
 Unknown selection or malformed definitions fails before acquisition. The old
 hardcoded `redump-psx` command has been replaced by `--catalog`.

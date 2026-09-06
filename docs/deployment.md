@@ -254,3 +254,25 @@ permits metadata reuse. The standard PlayStation DAT is qualified for centralize
 mirroring; see [scope, provenance, and evidence](redump-psx-qualification.md).
 Enable only `REDUMP_PSX_PUBLISH_ENABLED` after deploying the reviewed tooling pin.
 Do not infer qualification for No-Intro, restricted exports, BIOS, or other platforms.
+
+
+## Gated No-Intro SNES slice
+
+The reusable workflow also selects `no-intro/snes/standard` when
+`NOINTRO_SNES_PUBLISH_ENABLED=true`. Keep it unset/false until the
+[No-Intro qualification gates](nointro-snes-qualification.md) are resolved.
+Definition availability is not publication authorization. A never-enabled
+catalog is not invented; a paused existing catalog retains its DAT.
+
+After qualification, update both data caller pins to the reviewed tooling commit
+and use the existing once-daily/manual workflow. The anonymous official form
+runs centrally, preserving all selected public entries. No credentials or new
+secrets are required. Existing online role keys sign the catalog index and RSS;
+root keys stay offline. Export writes `no-intro/snes/standard.dat` before signing
+its exact immutable commit URL. ZIP changes alone do not commit DATs or notify
+RSS; routine metadata renewal still occurs. Failures retain the last document.
+
+Deploy compatible reader binaries before publishing the extended registry:
+older strict readers reject the newly supported provider. No ROMD runtime code
+is changed by the publisher PR; review the signed candidate contract described
+in the qualification document.

@@ -19,8 +19,8 @@ const GitFormat = "romd-signed-catalog-2"
 
 var gitRepository = regexp.MustCompile(`^[A-Za-z0-9_-][A-Za-z0-9_.-]*/[A-Za-z0-9_-][A-Za-z0-9_.-]*$`)
 var gitCommit = regexp.MustCompile(`^[0-9a-f]{40}$`)
-var gitCatalog = regexp.MustCompile(`^[a-z0-9]+(/[a-z0-9]+([.-][a-z0-9]+)*)+$`)
-var gitAssetURL = regexp.MustCompile(`^https://raw\.githubusercontent\.com/[A-Za-z0-9_-][A-Za-z0-9_.-]*/[A-Za-z0-9_-][A-Za-z0-9_.-]*/[0-9a-f]{40}/[a-z0-9]+(/[a-z0-9]+([.-][a-z0-9]+)*)+\.dat$`)
+var gitCatalog = regexp.MustCompile(`^[a-z0-9]+([.-][a-z0-9]+)*(/[a-z0-9]+([.-][a-z0-9]+)*)+$`)
+var gitAssetURL = regexp.MustCompile(`^https://raw\.githubusercontent\.com/[A-Za-z0-9_-][A-Za-z0-9_.-]*/[A-Za-z0-9_-][A-Za-z0-9_.-]*/[0-9a-f]{40}/[a-z0-9]+([.-][a-z0-9]+)*(/[a-z0-9]+([.-][a-z0-9]+)*)+\.dat$`)
 
 // ExportData writes only complete current DATs to stable catalog paths. No
 // timestamps or check status go in Git, so identical documents produce no diff.

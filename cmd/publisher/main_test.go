@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/definitions"
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/nointro"
 	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/publisher"
 	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/redump"
 	"os"
@@ -170,5 +172,53 @@ func TestPublishedRetryGuidancePreventsNextAcquisition(t *testing.T) {
 	}
 	if adapter.calls != 0 || after.Sequence != before.Sequence || *after.Catalogs["redump/psx/discs"].RetryAt != retry {
 		t.Fatal("retry guidance lost across invocation")
+	}
+}
+
+type captureNoIntro struct {
+	calls    int
+	id       string
+	selected definitions.Catalog
+}
+
+func (a *captureNoIntro) Acquire(_ context.Context, id string, c definitions.Catalog, _ string) (nointro.Result, error) {
+	a.calls++
+	a.id = id
+	a.selected = c
+	failure := "synthetic failure"
+	return nointro.Result{Attempt: publisher.Attempt{CatalogID: id, ExpectedName: c.ExpectedName, SourceURL: nointro.SourceURL(c.ProviderSystemID), Failure: &failure}}, nil
+}
+func TestNoIntroSelectionPauseAndRetry(t *testing.T) {
+	redumpAdapter := &captureAcquirer{}
+	noIntro := &captureNoIntro{}
+	state := filepath.Join(t.TempDir(), "state")
+	var out bytes.Buffer
+	args := []string{"--output", state, "--definitions", "../../definitions", "--catalog", "no-intro/snes/standard"}
+	if err := runWithAdapters(args, &out, &out, redumpAdapter, noIntro); err != nil {
+		t.Fatal(err)
+	}
+	if redumpAdapter.calls != 0 || noIntro.calls != 1 || noIntro.selected.SystemID != "snes" || noIntro.selected.ProviderSystemID != "49" || noIntro.selected.Validation.MinimumGames != 4000 {
+		t.Fatal("wrong provider/system route")
+	}
+	if err := runWithAdapters(append(args, "--paused"), &out, &out, redumpAdapter, noIntro); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := publisher.LoadSnapshot(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if noIntro.calls != 1 || *snapshot.Catalogs[noIntro.id].Error != "publication_paused" {
+		t.Fatal("pause fetched or wrong status")
+	}
+	retry := time.Now().Add(48 * time.Hour).UTC().Format(time.RFC3339Nano)
+	failure := "rate_limited"
+	if _, err := publisher.Publish(state, []publisher.Attempt{{CatalogID: noIntro.id, ExpectedName: noIntro.selected.ExpectedName, SourceURL: nointro.SourceURL("49"), Failure: &failure, RetryAt: &retry}}, "https://example.invalid/", publisher.Options{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := runWithAdapters(args, &out, &out, redumpAdapter, noIntro); err != nil {
+		t.Fatal(err)
+	}
+	if noIntro.calls != 1 {
+		t.Fatal("restored retry deadline ignored")
 	}
 }

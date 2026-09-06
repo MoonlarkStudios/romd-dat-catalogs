@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/definitions"
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/nointro"
 	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/publisher"
 	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/redump"
 	"io"
@@ -22,7 +23,15 @@ type acquirer interface {
 func run(args []string, out, errOut io.Writer) error {
 	return runWithAcquirer(args, out, errOut, redump.New())
 }
+
+type noIntroAcquirer interface {
+	Acquire(context.Context, string, definitions.Catalog, string) (nointro.Result, error)
+}
+
 func runWithAcquirer(args []string, out, errOut io.Writer, adapter acquirer) error {
+	return runWithAdapters(args, out, errOut, adapter, nointro.New())
+}
+func runWithAdapters(args []string, out, errOut io.Writer, adapter acquirer, noIntro noIntroAcquirer) error {
 	f := flag.NewFlagSet("publisher", flag.ContinueOnError)
 	f.SetOutput(errOut)
 	output := f.String("output", "", "publication directory (required)")
@@ -67,7 +76,7 @@ func runWithAcquirer(args []string, out, errOut io.Writer, adapter acquirer) err
 				return errors.New("catalog identity changed; explicit migration required")
 			}
 			failure := "publication_paused"
-			a = append(a, publisher.Attempt{CatalogID: *catalogID, ExpectedName: selected.ExpectedName, SourceURL: redump.SourceURL(selected.ProviderSystemID), Failure: &failure})
+			a = append(a, publisher.Attempt{CatalogID: *catalogID, ExpectedName: selected.ExpectedName, SourceURL: sourceURL(selected), Failure: &failure})
 		} else {
 			return writeSummary(out, prior)
 		}
@@ -86,17 +95,28 @@ func runWithAcquirer(args []string, out, errOut io.Writer, adapter acquirer) err
 				return writeSummary(out, prior)
 			}
 		}
-		stageRoot, err := os.MkdirTemp("", "romd-redump-")
+		stageRoot, err := os.MkdirTemp("", "romd-acquisition-")
 		if err != nil {
 			return err
 		}
 		defer os.RemoveAll(stageRoot)
-		results, err := adapter.Acquire(context.Background(), []redump.Catalog{{ID: *catalogID, System: selected.ProviderSystemID, ExpectedName: selected.ExpectedName, Platform: selected.SystemID, Representation: selected.Representation, PolicyVersion: "1", MinGames: selected.Validation.MinimumGames, MinROMs: selected.Validation.MinimumROMs}}, filepath.Join(stageRoot, "input"))
-		if err != nil {
-			return err
-		}
-		for _, result := range results {
+		switch selected.Provider {
+		case "no-intro":
+			result, err := noIntro.Acquire(context.Background(), *catalogID, selected, filepath.Join(stageRoot, "input"))
+			if err != nil {
+				return err
+			}
 			a = append(a, result.Attempt)
+		case "redump":
+			results, err := adapter.Acquire(context.Background(), []redump.Catalog{{ID: *catalogID, System: selected.ProviderSystemID, ExpectedName: selected.ExpectedName, Platform: selected.SystemID, Representation: selected.Representation, PolicyVersion: "1", MinGames: selected.Validation.MinimumGames, MinROMs: selected.Validation.MinimumROMs}}, filepath.Join(stageRoot, "input"))
+			if err != nil {
+				return err
+			}
+			for _, result := range results {
+				a = append(a, result.Attempt)
+			}
+		default:
+			return errors.New("unsupported provider")
 		}
 	} else {
 		a, e = publisher.ReadManifest(f.Arg(0))
@@ -125,4 +145,11 @@ func main() {
 		fmt.Fprintln(os.Stderr, e)
 		os.Exit(1)
 	}
+}
+
+func sourceURL(c definitions.Catalog) string {
+	if c.Provider == "no-intro" {
+		return nointro.SourceURL(c.ProviderSystemID)
+	}
+	return redump.SourceURL(c.ProviderSystemID)
 }
