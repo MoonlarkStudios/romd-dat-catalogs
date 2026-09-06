@@ -4,7 +4,10 @@ Companion publisher for ROMD's planned one-click No-Intro and Redump DAT
 subscriptions. Complete upstream catalogs come first; future 1G1R filtering
 belongs in ROMD's library layer.
 
-**Current status: synthetic publisher with signed distribution tooling.**
+**Current status: live signed synthetic publisher.**
+[Public RSS](https://moonlarkstudios.github.io/romd-dat-catalogs/feed.xml) ·
+[Deployment runbook](docs/deployment.md)
+
 The local publisher still emits explicitly unsigned intermediate state. The
 distribution command wraps it with TUF-authenticated catalog/feed targets for
 GitHub Releases and Pages. No upstream acquisition adapters, public upstream
@@ -81,14 +84,14 @@ full ROM/hash semantics and anomaly policies remain pending.
 
 ## Next acceptance gates
 
-1. Complete the first live synthetic deployment and operational recovery drill
-   using [the deployment runbook](docs/deployment.md). TUF signature, expiry,
-   rollback, and rotation tests are implemented; live deployment evidence is
-   separate. The signed catalog format remains experimental.
+1. Complete an operational recovery drill using
+   [the deployment runbook](docs/deployment.md). Initial and ordinary live
+   synthetic publications passed; unattended outage recovery remains separate.
+   The signed catalog format remains experimental.
 2. Qualify acquisition and public redistribution conditions for each upstream.
    Preserve system/variant distinctions and explicit inclusion settings.
-3. Add adapters, remote publication, a stable RSS URL, retention, and actual
-   unattended change/outage observations. No GitHub API token required by readers.
+3. Add upstream adapters, qualify retention at full catalog scale, and collect
+   actual unattended change/outage observations. No GitHub API token required by readers.
 4. Integrate with ROMD's durable jobs, CAS, exact-version diff, validated
    activation, curation preservation, history/rollback, and library convergence.
 

@@ -1,4 +1,4 @@
-module github.com/JackSkylark/romd-dat-catalogs
+module github.com/MoonlarkStudios/romd-dat-catalogs
 
 go 1.26.0
 

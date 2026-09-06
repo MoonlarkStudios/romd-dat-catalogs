@@ -1,6 +1,8 @@
 # Signed synthetic catalog deployment
 
-Status: deployment tooling implemented; see the PR/Actions run for live evidence.
+Status: synthetic publication is live at
+https://moonlarkstudios.github.io/romd-dat-catalogs/. See the Release notes and
+Actions runs for deployment evidence.
 This environment publishes hand-authored synthetic DATs only. No upstream
 mirroring permission or ROMD beta acceptance is implied.
 
@@ -49,6 +51,11 @@ may need to refresh after a deployment rather than assume old Pages paths persis
 
 ## Initial setup
 
+These initialization commands are for a new, independent deployment. The
+MoonlarkStudios deployment already has a committed trust root; recover its
+existing keys from private operational records instead of generating a replacement.
+A repository transfer does not reset trust or metadata versions.
+
 Initialize keys once in a private local directory; this command refuses to
 overwrite an existing directory:
 
@@ -58,7 +65,7 @@ mise run build
 mkdir -p trust
 cp .keys/synthetic-initial/public/1.root.json trust/1.root.json
 gh secret set TUF_ONLINE_KEYS < .keys/synthetic-initial/online.json
-gh api --method POST repos/JackSkylark/romd-dat-catalogs/pages -f build_type=workflow
+gh api --method POST repos/MoonlarkStudios/romd-dat-catalogs/pages -f build_type=workflow
 ```
 
 Commit only the public root file. Keep `offline-root.json` and `online.json`
@@ -66,21 +73,23 @@ out of Git, logs, Pages artifacts, and Releases. Key files use mode 0600.
 Back up the private directory securely before relying on this trust root.
 GitHub secret values cannot be recovered by reading the secret back.
 
-### 1Password key custody
+### Private key custody
 
-Keep a versioned 1Password item named `ROMD DAT catalogs — synthetic — root v1`.
-Store the exact public `1.root.json`, `offline-root.json`, and `online.json`
-contents in separately named fields or attachments. Mark both private JSON
-fields as concealed. Record the repository URL, root version, expiry, and
-SHA-256 fingerprint of the public root alongside them. These are TUF Ed25519
-keys, not SSH keys; preserve their JSON representation for the distribution CLI.
+Back up private signing keys in an access-controlled secrets manager and verify
+that restored values exactly match the original files before publication. Keep
+account names, vaults, item identifiers, recovery access, and operator-specific
+backup locations in private operational records, outside this repository.
 
-Verify the saved values against the local files before the first publication.
-The root private key is for offline rotation only; never send it to GitHub.
-Only `online.json` supplies the `TUF_ONLINE_KEYS` Actions secret. Transfer secret
-values through stdin or private files, never command-line arguments, chat,
-logs, or committed templates. Never grant CI access to the 1Password root item.
-Retain each previous root version in 1Password during rotation.
+Preserve the exact JSON representation of each versioned public root and its
+root and online key sets. Record root versions, expiry dates, and public-root
+SHA-256 fingerprints with the private backup. These are TUF Ed25519 keys, not
+SSH keys. Retain previous versions during rotation.
+
+The root private key is for offline rotation only and must never be available
+to CI. Only `online.json` supplies the `TUF_ONLINE_KEYS` Actions secret. Transfer
+secret values through stdin or restricted private files, never command-line
+arguments, chat, logs, or committed templates. CI must not have access to the
+root-key backup.
 
 After the workflow and public root are merged, start the first deployment:
 

@@ -21,3 +21,7 @@ Supports macOS and Linux. Mise owns Go and development-tool versions.
 - Root private keys stay offline from CI. Never commit `.keys/` or print keys.
   Only online role keys go in `TUF_ONLINE_KEYS`; read `docs/deployment.md`.
 - Do not spawn agents unless the user explicitly requests them.
+- Public docs describe the security model and generic setup. Keep operator
+  account/vault/item identifiers and backup locations in private records.
+- Repository transfers retain the existing trust root and metadata versions.
+  Verify authenticated restoration at the new Pages URL before publishing.

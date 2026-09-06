@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JackSkylark/romd-dat-catalogs/internal/publisher"
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/publisher"
 	"github.com/theupdateframework/go-tuf/v2/metadata/trustedmetadata"
 )
 
@@ -66,7 +66,7 @@ func read(t *testing.T, p string) []byte {
 func (f *fixture) stage(t *testing.T, version int64) (Index, string) {
 	t.Helper()
 	out := filepath.Join(f.dir, fmt.Sprintf("stage-%d", version))
-	index, e := Stage(StageOptions{State: f.state, TrustDir: f.trust, Output: out, ReleaseBase: fmt.Sprintf("https://github.com/JackSkylark/romd-dat-catalogs/releases/download/test-%d", version), Keys: f.online, Version: version, Now: f.now})
+	index, e := Stage(StageOptions{State: f.state, TrustDir: f.trust, Output: out, ReleaseBase: fmt.Sprintf("https://github.com/MoonlarkStudios/romd-dat-catalogs/releases/download/test-%d", version), Keys: f.online, Version: version, Now: f.now})
 	if e != nil {
 		t.Fatal(e)
 	}
