@@ -27,6 +27,7 @@ type Reference struct {
 	Bytes  int    `json:"bytes"`
 }
 type Attempt struct {
+	RetryAt      *string `json:"retryAt,omitempty"`
 	CatalogID    string  `json:"catalogId"`
 	ExpectedName string  `json:"expectedName"`
 	SourceURL    string  `json:"sourceUrl"`
@@ -38,6 +39,7 @@ type Provenance struct {
 	AcquiredAt string `json:"acquiredAt"`
 }
 type Catalog struct {
+	RetryAt             *string     `json:"retryAt,omitempty"`
 	Name                string      `json:"name"`
 	Artifact            *Reference  `json:"artifact"`
 	LastSuccessfulCheck *string     `json:"lastSuccessfulCheck"`
@@ -219,6 +221,11 @@ func Publish(root string, attempts []Attempt, baseURL string, opt Options) (Snap
 		if !catalogID.MatchString(a.CatalogID) || seen[a.CatalogID] {
 			return empty, errors.New("invalid or duplicate catalog ID")
 		}
+		if a.RetryAt != nil {
+			if _, err := time.Parse(time.RFC3339Nano, *a.RetryAt); err != nil || a.Failure == nil {
+				return empty, errors.New("invalid acquisition retry time")
+			}
+		}
 		seen[a.CatalogID] = true
 		if a.ExpectedName == "" || !publicURL(a.SourceURL, false) || (a.Path == nil) == (a.Failure == nil) {
 			return empty, errors.New("invalid registry attempt")
@@ -277,6 +284,9 @@ func Publish(root string, attempts []Attempt, baseURL string, opt Options) (Snap
 			if errors.As(candidateErr, &ce) {
 				code = string(ce)
 			}
+			if a.RetryAt != nil {
+				c.RetryAt = a.RetryAt
+			}
 			c.Health = "failed"
 			c.Error = &code
 		} else {
@@ -292,6 +302,7 @@ func Publish(root string, attempts []Attempt, baseURL string, opt Options) (Snap
 				c.Provenance = &Provenance{a.SourceURL, stamp}
 			}
 			c.LastSuccessfulCheck = &stamp
+			c.RetryAt = nil
 			c.Health = "healthy"
 			c.Error = nil
 		}

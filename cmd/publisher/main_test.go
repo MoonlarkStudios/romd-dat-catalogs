@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestCLI(t *testing.T) {
@@ -105,7 +106,7 @@ func (a *captureAcquirer) Acquire(_ context.Context, c []redump.Catalog, _ strin
 	a.calls++
 	a.catalogs = c
 	failure := "offline fixture"
-	return []redump.Result{{Attempt: publisher.Attempt{CatalogID: c[0].ID, ExpectedName: c[0].ExpectedName, SourceURL: "http://redump.org/datfile/" + c[0].System + "/", Failure: &failure}}}, nil
+	return []redump.Result{{Attempt: publisher.Attempt{CatalogID: c[0].ID, ExpectedName: c[0].ExpectedName, SourceURL: redump.SourceURL(c[0].System), Failure: &failure}}}, nil
 }
 func TestCatalogSelectionBeforeNetwork(t *testing.T) {
 	adapter := &captureAcquirer{}
@@ -146,5 +147,28 @@ func TestCatalogSelectionBeforeNetwork(t *testing.T) {
 	}
 	if adapter.calls != 1 {
 		t.Fatal("bad data reached network")
+	}
+}
+
+// A fresh CLI process uses the restored signed snapshot, not adapter memory.
+func TestPublishedRetryGuidancePreventsNextAcquisition(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "state")
+	retry := time.Now().Add(72 * time.Hour).UTC().Format(time.RFC3339Nano)
+	failure := "rate_limited"
+	before, err := publisher.Publish(root, []publisher.Attempt{{CatalogID: "redump/psx/discs", ExpectedName: "Sony - PlayStation", SourceURL: redump.SourceURL("psx"), Failure: &failure, RetryAt: &retry}}, "https://example.invalid/", publisher.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	adapter := &captureAcquirer{}
+	var out bytes.Buffer
+	if err := runWithAcquirer([]string{"--output", root, "--definitions", "../../definitions", "--catalog", "redump/psx/discs"}, &out, &out, adapter); err != nil {
+		t.Fatal(err)
+	}
+	after, err := publisher.LoadSnapshot(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if adapter.calls != 0 || after.Sequence != before.Sequence || *after.Catalogs["redump/psx/discs"].RetryAt != retry {
+		t.Fatal("retry guidance lost across invocation")
 	}
 }

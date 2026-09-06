@@ -69,7 +69,7 @@ func TestAcquisitionPublicationRepackagingAndFailureRetention(t *testing.T) {
 	raw := fixture(t)
 	var mode atomic.Int32
 	a := adapter(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/datfile/psx/" {
+		if r.URL.Path != "/datfile/psx" {
 			t.Error("unexpected path")
 		}
 		if mode.Load() == 3 {
@@ -183,6 +183,9 @@ func TestProviderBackoffStopsBatch(t *testing.T) {
 			})
 			before := time.Now()
 			r := acquire(t, a, catalog("one"), catalog("two"))
+			if r[0].Attempt.RetryAt == nil || *r[0].Attempt.RetryAt != r[0].RetryAt.UTC().Format(time.RFC3339Nano) {
+				t.Fatal("retry guidance missing from publication attempt")
+			}
 			if calls.Load() != 1 || r[1].Code != "provider_backoff" || r[0].RetryAt.Before(before.Add(time.Hour)) || !r[0].RetryAt.Equal(r[1].RetryAt) {
 				t.Fatalf("backoff %+v", r)
 			}
@@ -232,7 +235,7 @@ func TestInvalidRegistryMakesNoRequests(t *testing.T) {
 			t.Fatal("accepted invalid registry")
 		}
 	}
-	for _, origin := range []string{"https://redump.org", "ftp://redump.org", "http://", "http://user:secret@redump.org", "http://redump.org/path", "http://redump.org?", "http://redump.org?q=x", "http://redump.org#fragment"} {
+	for _, origin := range []string{"ftp://redump.org", "http://", "http://user:secret@redump.org", "http://redump.org/path", "http://redump.org?", "http://redump.org?q=x", "http://redump.org#fragment"} {
 		a.origin = origin
 		if _, e := a.Acquire(context.Background(), []Catalog{catalog("psx")}, filepath.Join(t.TempDir(), "stage")); e == nil {
 			t.Fatal("accepted invalid origin")
@@ -308,13 +311,13 @@ type requestTransport func(*http.Request) (*http.Response, error)
 
 func (f requestTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
-func TestProductionAdapterRequestsHTTPAndRecordsSource(t *testing.T) {
+func TestProductionAdapterRequestsOfficialHTTPSAndRecordsSource(t *testing.T) {
 	raw := fixture(t)
 	a := New()
 	calls := 0
 	a.client.Transport = requestTransport(func(r *http.Request) (*http.Response, error) {
 		calls++
-		if r.Method != http.MethodGet || r.URL.String() != "http://redump.org/datfile/psx/" {
+		if r.Method != http.MethodGet || r.URL.String() != "https://redump.info/datfile/psx" {
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL)
 		}
 		if r.Header.Get("Authorization") != "" || r.Header.Get("Cookie") != "" || r.Header.Get("Accept-Encoding") != "identity" || r.Header.Get("User-Agent") == "" {
@@ -323,7 +326,7 @@ func TestProductionAdapterRequestsHTTPAndRecordsSource(t *testing.T) {
 		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(bytes.NewReader(raw)), ContentLength: int64(len(raw)), Request: r}, nil
 	})
 	result := acquire(t, a, catalog("psx"))[0]
-	if calls != 1 || result.Code != "" || result.SHA256 != publisher.Hash(raw) || result.Attempt.SourceURL != "http://redump.org/datfile/psx/" {
-		t.Fatalf("HTTP acquisition: %+v; calls=%d", result, calls)
+	if calls != 1 || result.Code != "" || result.SHA256 != publisher.Hash(raw) || result.Attempt.SourceURL != "https://redump.info/datfile/psx" {
+		t.Fatalf("HTTPS acquisition: %+v; calls=%d", result, calls)
 	}
 }

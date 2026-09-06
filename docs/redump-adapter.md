@@ -1,13 +1,16 @@
 # Redump acquisition library
 
-`internal/redump` implements the first acquisition layer. The explicit
-`publisher --output DIR --catalog redump/psx/discs` command calls it for the reviewed PlayStation
-identity; no scheduled workflow calls it and no upstream DATs are publicly
-published. See [the candidate trial](romd-candidate.md). Tests
-use synthetic data and local HTTP servers. The adapter explicitly targets
-`http://redump.org`, matching the upstream-supported transport. It does not first
-try HTTPS or perform a fallback. Publisher signatures authenticate the published
-bytes; they do not authenticate the upstream HTTP connection.
+`internal/redump` acquires reviewed, data-driven catalog selections. The data
+repository's daily workflow calls `publisher --catalog redump/psx/discs` only when
+`REDUMP_PSX_PUBLISH_ENABLED=true`. ROMD instances download from the signed mirror.
+Tests use synthetic data and local HTTP servers.
+
+The production endpoint is `https://redump.info/datfile/psx`, without a trailing
+slash. Redirects are rejected; the old `.org` site is not a fallback. The official
+community announced its move in June 2026. See the scoped
+[PlayStation qualification](redump-psx-qualification.md) and
+[candidate trial](romd-candidate.md). Earlier HTTP-only observations below describe
+the old `.org` endpoint, not the current production connection.
 
 ## Contract
 
@@ -23,6 +26,11 @@ status code, retry time, and a `publisher.Attempt`. Successful attempts point
 to the original ZIP/raw input in the staging directory. The existing publisher
 revalidates that input and stores exact extracted DAT bytes. Failed attempts
 let it retain the previous artifact and mark the catalog unhealthy.
+
+The existing signed catalog snapshot retains `retryAt` from rate-limit responses.
+A later CLI invocation skips acquisition until that time, including when Retry-After
+exceeds the daily interval. Successful acquisition clears the value. This uses the
+existing authenticated restoration path, without separate scheduling state.
 
 The caller must keep staging until publication completes, then remove it.
 Staging must not already exist; directories use mode 0700 and files mode 0600.

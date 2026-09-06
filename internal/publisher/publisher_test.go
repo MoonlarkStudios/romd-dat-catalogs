@@ -466,3 +466,27 @@ func FuzzDocument(f *testing.F) {
 		_, _, _ = Document(b, "Synthetic Console")
 	})
 }
+
+func TestRetryGuidancePreservesArtifactAndClearsOnSuccess(t *testing.T) {
+	f := newFixture(t)
+	first := mustPublish(t, f)
+	failed := f.a
+	failed.Path = nil
+	failed.Failure = ptr("rate_limited")
+	failed.RetryAt = ptr(now.Add(72 * time.Hour).UTC().Format(time.RFC3339Nano))
+	second, e := Publish(f.root, []Attempt{failed}, base, Options{Now: now.Add(time.Hour)})
+	if e != nil {
+		t.Fatal(e)
+	}
+	c := second.Catalogs[f.a.CatalogID]
+	if c.RetryAt == nil || *c.RetryAt != *failed.RetryAt || *c.Artifact != *first.Catalogs[f.a.CatalogID].Artifact || len(second.Events) != len(first.Events) {
+		t.Fatal("failure changed content or lost retry guidance")
+	}
+	final, e := Publish(f.root, []Attempt{f.a}, base, Options{Now: now.Add(73 * time.Hour)})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if final.Catalogs[f.a.CatalogID].RetryAt != nil || final.Catalogs[f.a.CatalogID].Health != "healthy" || len(final.Events) != len(first.Events) {
+		t.Fatal("successful identical document must clear backoff without an update event")
+	}
+}

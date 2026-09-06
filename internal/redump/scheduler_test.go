@@ -214,7 +214,8 @@ func TestSchedulerProcessHelper(t *testing.T) {
 		return
 	}
 	s := NewScheduler(root)
-	s.adapter = newAdapter("http://redump.org", crashTransport{})
+	s.adapter = New()
+	s.adapter.client.Transport = crashTransport{}
 	if _, e := s.Run(context.Background(), []Catalog{catalog("psx")}, os.Getenv("ROMD_SCHEDULER_STAGE")); e != nil {
 		t.Fatal(e)
 	}
