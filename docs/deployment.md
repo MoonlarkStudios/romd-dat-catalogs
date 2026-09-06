@@ -1,4 +1,4 @@
-# Signed synthetic catalog deployment
+# Signed catalog deployment
 
 Status: synthetic publication is live at
 https://moonlarkstudios.github.io/romd-dat-catalogs/. See the Release notes and
@@ -115,7 +115,7 @@ No production workflow is automatically enabled merely by merging code.
 
 1. Verify the previous Pages metadata using the pinned root and TUF updater.
 2. Download and verify its recovery archive, then restore into a new directory.
-3. Run the synthetic publisher; sign a private staging bundle using online keys.
+3. Run the synthetic publisher and optional PSX acquisition; sign a private staging bundle using online keys.
 4. Upload a new draft Release; publish it; download every asset and verify hashes.
 5. Upload the Pages bundle and deploy it only after asset verification succeeds.
 6. Verify the deployed signature chain and restore using a fresh client cache.
@@ -131,8 +131,8 @@ If metadata expires during a prolonged outage, the regular restore deliberately
 fails. Do not use bootstrap or disable expiry verification to recover. An
 operator must recover the last independently verified publisher state from a
 trusted local backup, refresh/rotate the root if required, and stage a higher
-metadata version. A fully automated post-expiry publisher recovery process and
-independent freshness monitoring remain operational follow-ups before real DATs.
+metadata version. A failed update is visible in Actions; installed ROMD catalogs remain usable.
+Automated post-expiry recovery is deferred until observed failures justify it.
 
 ## Key rotation
 
@@ -163,3 +163,42 @@ ephemeral keys. Workflow validation uses actionlint and ShellCheck.
 
 These tests are not evidence of a completed GitHub Pages deployment, a full
 upstream daily pack, unattended NAS acceptance, or ROMD application activation.
+
+## Gated PlayStation publication
+
+The existing `publish-synthetic.yml` workflow also supports the complete
+`redump/psx/discs` catalog. Its filename, concurrency group, version counter,
+and signing root deliberately remain unchanged. No second scheduler is needed.
+
+`REDUMP_PSX_PUBLISH_ENABLED` defaults to absent/false. Do not set it until
+current upstream redistribution conditions have been recorded. Merging the
+workflow does not enable public Redump mirroring. Acquisition uses the explicit
+HTTP Redump adapter, without redirect following or automatic retries, and
+validates the expected PlayStation header and minimum catalog coverage.
+
+After qualification, set the variable to `true` and manually dispatch the
+existing workflow without bootstrap. The same opt-in enables its daily run.
+Inspect the run summary for health, exact extracted-document hash, bytes, entry
+counts, and last successful/check/change timestamps. An unchanged document
+keeps its artifact identity and creates no new content-change RSS event.
+Provider failures are signed as failed health while retaining the previous
+artifact; they do not require the workflow to fail before it can report them.
+A failure in restore, signing, upload, or deployment is an Actions failure.
+
+Setting the PSX variable to `false` stops acquisition. On the next publication,
+an existing PSX catalog is marked `publication_paused` with its last working
+artifact retained; a never-enabled catalog is not added. Keep the existing
+synthetic schedule enabled to continue refreshing signed metadata while paused,
+or dispatch manually. Pausing does not revoke or delete previously public DATs.
+
+This is a single-platform observation trial, not approval for broad coverage.
+The current Release/recovery format still duplicates full artifacts and has a
+64 MiB state limit. Before ongoing rollout, address artifact reuse and the
+retention budget in issue #12. Record compressed size and actual change
+frequency; unchanged probes are not evidence of a typical update interval.
+
+Qualification status (2026-09-06): indexed official Redump overview text
+supports public metadata reuse, but its current wiki page could not be fetched
+(HTTP 404, HTTPS unavailable). Automation guidance and applicable distribution
+conditions still need a durable source. No public PSX enable flag has been set.
+Reference: http://wiki.redump.org/index.php?title=Redump.org

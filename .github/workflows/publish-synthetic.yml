@@ -1,4 +1,4 @@
-name: Publish synthetic catalogs
+name: Publish catalogs
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   publish:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.SYNTHETIC_PUBLISH_ENABLED == 'true')
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.SYNTHETIC_PUBLISH_ENABLED == 'true' || vars.REDUMP_PSX_PUBLISH_ENABLED == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -53,6 +53,21 @@ jobs:
           fi
       - name: Publish synthetic local candidate
         run: ./bin/publisher --output output fixtures/manifest.json
+      - name: Check PSX or record publication pause
+        env:
+          PSX_ENABLED: ${{ vars.REDUMP_PSX_PUBLISH_ENABLED }}
+        run: |
+          set -euo pipefail
+          if [ "$PSX_ENABLED" = true ]; then
+            ./bin/publisher --output output redump-psx > publication-summary.json
+          else
+            ./bin/publisher --output output --paused redump-psx > publication-summary.json
+          fi
+          {
+            printf '### Catalog acquisition result\n\n```json\n'
+            cat publication-summary.json
+            printf '\n```\n\nAcquisition failures preserve the last working artifact. Deployment is verified in subsequent steps.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Stage and sign
         id: stage
         env:
@@ -76,7 +91,7 @@ jobs:
           TAG: ${{ steps.stage.outputs.tag }}
         run: |
           set -euo pipefail
-          gh release create "$TAG" --target "$GITHUB_SHA" --draft --title "Synthetic catalogs $TAG" --notes "Signed synthetic test catalogs. No upstream DATs."
+          gh release create "$TAG" --target "$GITHUB_SHA" --draft --title "Catalogs $TAG" --notes "Signed catalog publication. See the authenticated index for source identities, acquisition health, and document hashes."
           gh release upload "$TAG" staged/assets/*
           gh release edit "$TAG" --draft=false --latest=false
       - name: Verify public asset availability and hashes

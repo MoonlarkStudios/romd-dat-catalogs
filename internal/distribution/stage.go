@@ -123,7 +123,7 @@ func Stage(opt StageOptions) (Index, error) {
 	for _, name := range names {
 		ref := required[name]
 		if ref.Bytes < 0 || ref.Bytes > MaxState-total {
-			return result, errors.New("synthetic state limit exceeded")
+			return result, errors.New("publication state limit exceeded")
 		}
 		b, e := publisher.VerifiedRead(opt.State, ref)
 		if e != nil {
@@ -261,7 +261,7 @@ func Stage(opt StageOptions) (Index, error) {
 			}
 		}
 	}
-	if e = save(site, "index.html", []byte("<!doctype html><meta charset=utf-8><title>ROMD synthetic catalogs</title><h1>ROMD synthetic catalog publisher</h1><p>Signed test metadata only. No upstream DATs are distributed.</p><p><a href=feed.xml>RSS feed</a></p>")); e != nil {
+	if e = save(site, "index.html", []byte("<!doctype html><meta charset=utf-8><title>ROMD DAT catalogs</title><h1>ROMD DAT catalog publisher</h1><p>Signed catalog updates. Consult the authenticated catalog index for available sources and acquisition health. RSS is a notification feed; clients verify signed metadata before applying updates.</p><p><a href=feed.xml>RSS feed</a></p>")); e != nil {
 		return result, e
 	}
 	return result, nil
