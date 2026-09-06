@@ -12,7 +12,8 @@ The local publisher still emits explicitly unsigned intermediate state. The
 distribution command wraps it with TUF-authenticated catalog/feed targets for
 GitHub Releases and Pages. A [Redump acquisition library](docs/redump-adapter.md)
 is tested against synthetic servers but is not wired into live polling. No
-public upstream DAT mirrors or ROMD integration are implemented. Do not enable production
+public upstream DAT mirrors are enabled. An operator-driven [candidate reader](docs/romd-candidate.md)
+is available for the first ROMD review integration. Do not enable production
 AutoApply against synthetic catalogs.
 
 ## Run

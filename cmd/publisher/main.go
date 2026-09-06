@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/publisher"
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/redump"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 func run(args []string, out, errOut io.Writer) error {
@@ -18,9 +21,26 @@ func run(args []string, out, errOut io.Writer) error {
 		return e
 	}
 	if f.NArg() != 1 || *output == "" {
-		return fmt.Errorf("usage: publisher --output DIR [--base-url URL] MANIFEST")
+		return fmt.Errorf("usage: publisher --output DIR [--base-url URL] MANIFEST_OR_redump-psx")
 	}
-	a, e := publisher.ReadManifest(f.Arg(0))
+	var a []publisher.Attempt
+	var e error
+	if f.Arg(0) == "redump-psx" {
+		stageRoot, err := os.MkdirTemp("", "romd-redump-")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(stageRoot)
+		results, err := redump.New().Acquire(context.Background(), []redump.Catalog{{ID: "redump/psx/discs", System: "psx", ExpectedName: "Sony - PlayStation", Platform: "psx", Representation: "discs", PolicyVersion: "1", MinGames: 10000, MinROMs: 50000}}, filepath.Join(stageRoot, "input"))
+		if err != nil {
+			return err
+		}
+		for _, result := range results {
+			a = append(a, result.Attempt)
+		}
+	} else {
+		a, e = publisher.ReadManifest(f.Arg(0))
+	}
 	if e != nil {
 		return e
 	}
