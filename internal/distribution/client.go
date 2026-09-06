@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/definitions"
 	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/publisher"
 	"github.com/theupdateframework/go-tuf/v2/metadata/config"
 	"github.com/theupdateframework/go-tuf/v2/metadata/updater"
@@ -62,6 +63,16 @@ func RefreshIndex(root []byte, site, cache string, client *http.Client) (Index, 
 	}
 	if (index.Format != "romd-signed-catalog-1" && index.Format != GitFormat) || index.Version < 1 {
 		return index, errors.New("unsupported signed catalog")
+	}
+	var fields map[string]json.RawMessage
+	if e = json.Unmarshal(b, &fields); e != nil {
+		return index, e
+	}
+	if raw, ok := fields["definitions"]; ok {
+		index.Definitions, e = definitions.Parse(raw)
+		if e != nil {
+			return index, e
+		}
 	}
 	return index, nil
 }

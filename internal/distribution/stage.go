@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/definitions"
 	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/publisher"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 )
@@ -29,13 +30,15 @@ type Asset struct {
 	Bytes  int    `json:"bytes"`
 }
 type Index struct {
-	Format    string             `json:"format"`
-	Version   int64              `json:"version"`
-	Snapshot  publisher.Snapshot `json:"snapshot"`
-	State     Asset              `json:"state,omitzero"`
-	Downloads map[string]Asset   `json:"downloads"`
+	Definitions *definitions.Registry `json:"definitions,omitempty"`
+	Format      string                `json:"format"`
+	Version     int64                 `json:"version"`
+	Snapshot    publisher.Snapshot    `json:"snapshot"`
+	State       Asset                 `json:"state,omitzero"`
+	Downloads   map[string]Asset      `json:"downloads"`
 }
 type StageOptions struct {
+	Definitions                          *definitions.Registry
 	State, TrustDir, Output, ReleaseBase string
 	Keys                                 Keys
 	Version                              int64
@@ -190,7 +193,18 @@ func signIndex(opt StageOptions, result Index, feed []byte) (Index, error) {
 	targets := metadata.Targets(opt.Now.Add(30 * 24 * time.Hour))
 	targets.Signed.Version = opt.Version
 	site := filepath.Join(opt.Output, "site")
-	for name, data := range map[string][]byte{"catalog.json": indexBytes, "feed.xml": feed} {
+	files := map[string][]byte{"catalog.json": indexBytes, "feed.xml": feed}
+	if result.Definitions != nil {
+		b, err := json.Marshal(result.Definitions)
+		if err != nil {
+			return result, err
+		}
+		files["systems.json"] = b
+		if err := save(filepath.Join(opt.Output, "site"), "systems.json", b); err != nil {
+			return result, err
+		}
+	}
+	for name, data := range files {
 		target, e := metadata.TargetFile().FromBytes(name, data, "sha256")
 		if e != nil {
 			return result, e

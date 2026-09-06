@@ -1,7 +1,7 @@
 # Redump acquisition library
 
 `internal/redump` implements the first acquisition layer. The explicit
-`publisher --output DIR redump-psx` command calls it for the reviewed PlayStation
+`publisher --output DIR --catalog redump/psx/discs` command calls it for the reviewed PlayStation
 identity; no scheduled workflow calls it and no upstream DATs are publicly
 published. See [the candidate trial](romd-candidate.md). Tests
 use synthetic data and local HTTP servers. The adapter explicitly targets

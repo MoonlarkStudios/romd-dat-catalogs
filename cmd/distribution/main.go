@@ -12,12 +12,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/definitions"
 	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/distribution"
 )
 
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("commands: init, rotate, stage, restore, verify-assets, candidate, export-data")
+		return errors.New("commands: init, rotate, stage, restore, verify-assets, candidate, export-data, validate-definitions")
 	}
 	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	switch args[0] {
@@ -45,6 +46,16 @@ func run(args []string) error {
 			}
 		}
 		return distribution.Initialize(*out, time.Now().UTC(), b, k)
+	case "validate-definitions":
+		path := fs.String("definitions", "definitions/systems.json", "reviewed definitions")
+		if err := fs.Parse(args[1:]); err != nil {
+			return err
+		}
+		if fs.NArg() != 0 {
+			return errors.New("unexpected argument")
+		}
+		_, err := definitions.Load(*path)
+		return err
 	case "export-data":
 		state := fs.String("state", "output", "local publisher state")
 		out := fs.String("out", "", "data repository checkout")
@@ -61,6 +72,7 @@ func run(args []string) error {
 		keys := fs.String("keys", "", "online signing keys file")
 		out := fs.String("out", "staged", "new staging directory")
 		release := fs.String("release-base", "", "immutable release asset base URL")
+		registryPath := fs.String("definitions", "", "reviewed system/catalog definitions (Git publication)")
 		repository := fs.String("data-repository", "", "GitHub owner/repo containing complete DATs")
 		commit := fs.String("data-commit", "", "full pushed data commit SHA")
 		version := fs.Int64("version", 0, "monotonic metadata version")
@@ -72,6 +84,15 @@ func run(args []string) error {
 			return e
 		}
 		opt := distribution.StageOptions{State: *state, TrustDir: *trust, Output: *out, ReleaseBase: *release, Keys: k, Version: *version, Now: time.Now().UTC()}
+		if *registryPath != "" {
+			if *repository == "" || *release != "" {
+				return errors.New("definitions require Git publication")
+			}
+			opt.Definitions, e = definitions.Load(*registryPath)
+			if e != nil {
+				return e
+			}
+		}
 		var index distribution.Index
 		if *repository != "" || *commit != "" {
 			if *release != "" {

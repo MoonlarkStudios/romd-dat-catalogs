@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "systems": {
+    "psx": { "name": "Sony PlayStation" }
+  },
+  "catalogs": {
+    "redump/psx/discs": {
+      "systemId": "psx",
+      "provider": "redump",
+      "providerSystemId": "psx",
+      "representation": "discs",
+      "expectedName": "Sony - PlayStation",
+      "validation": { "minimumGames": 10000, "minimumRoms": 50000 }
+    }
+  }
+}

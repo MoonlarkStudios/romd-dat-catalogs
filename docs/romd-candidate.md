@@ -10,7 +10,7 @@ publishing uses the Git-backed workflow in [deployment.md](deployment.md).
 
 ```sh
 mise run check
-./bin/publisher --output psx-state redump-psx
+./bin/publisher --output psx-state --catalog redump/psx/discs
 ./bin/distribution stage --state psx-state --trust trust --keys ONLINE_KEYS_FILE \
   --out psx-bundle --version NEXT_VERSION \
   --release-base https://github.com/OWNER/REPO/releases/download/IMMUTABLE_TAG
