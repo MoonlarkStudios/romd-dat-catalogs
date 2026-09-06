@@ -43,7 +43,19 @@ func dataClient(dir string) *http.Client {
 }
 
 func TestGitPublicationLifecycle(t *testing.T) {
+	for _, id := range []string{"synthetic/console/standard", "no-intro/snes/standard"} {
+		t.Run(id, func(t *testing.T) { testGitPublicationLifecycle(t, id) })
+	}
+}
+func testGitPublicationLifecycle(t *testing.T, id string) {
 	f := makeFixture(t)
+	if id != "synthetic/console/standard" {
+		f.state = filepath.Join(f.dir, "nointro-state")
+		path := "../../fixtures/example.dat"
+		if _, err := publisher.Publish(f.state, []publisher.Attempt{{CatalogID: id, ExpectedName: "ROMD Synthetic Console", SourceURL: "https://datomatic.no-intro.org/index.php?page=download&op=dat&s=49", Path: &path}}, "https://example.invalid/", publisher.Options{Now: f.now}); err != nil {
+			t.Fatal(err)
+		}
+	}
 	repo := filepath.Join(f.dir, "data")
 	if err := os.Mkdir(repo, 0755); err != nil {
 		t.Fatal(err)
@@ -101,7 +113,7 @@ func TestGitPublicationLifecycle(t *testing.T) {
 	if err := VerifyDownloads(idx, client); err != nil {
 		t.Fatal(err)
 	}
-	candidate, original, err := ReadCandidate(idx, "synthetic/console/standard", "ROMD Synthetic Console", client)
+	candidate, original, err := ReadCandidate(idx, id, "ROMD Synthetic Console", client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +207,7 @@ func TestGitPublicationLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	export()
-	if git(t, repo, "diff", "--cached", "--name-only") != "synthetic/console/standard.dat" {
+	if git(t, repo, "diff", "--cached", "--name-only") != id+".dat" {
 		t.Fatal("wrong stable path")
 	}
 	git(t, repo, "commit", "-m", "update")

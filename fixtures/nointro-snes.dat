@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!-- Hand-authored synthetic metadata; no upstream catalog content. -->
+<datafile>
+  <header>
+    <id>49</id>
+    <name>Nintendo - Super Nintendo Entertainment System</name>
+    <version>synthetic-1</version>
+    <homepage>No-Intro</homepage>
+  </header>
+  <game name="ROMD Fixture (Japan) (Proto)">
+    <rom name="fixture.sfc" size="1" crc="01234567" md5="0123456789abcdef0123456789abcdef" sha1="0123456789abcdef0123456789abcdef01234567"/>
+  </game>
+  <game name="ROMD Fixture (World) (Aftermarket) (Unl)">
+    <rom name="unknown.sfc" status="nodump"/>
+  </game>
+</datafile>

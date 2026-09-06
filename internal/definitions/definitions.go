@@ -78,6 +78,8 @@ type Registry struct {
 	Catalogs      map[string]Catalog  `json:"catalogs"`
 }
 
+var noIntroSystemID = regexp.MustCompile(`^[1-9][0-9]{0,5}$`)
+
 var idPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
 func label(s string) bool {
@@ -319,7 +321,8 @@ func (r *Registry) Validate() error {
 		if _, ok := r.Systems[c.SystemID]; !ok {
 			return fmt.Errorf("unknown system for catalog %q", id)
 		}
-		if c.Provider != "redump" || c.Representation != "discs" || !idPattern.MatchString(c.ProviderSystemID) || len(c.ProviderSystemID) > 64 || !label(c.ExpectedName) || c.Validation.MinimumGames < 1 || c.Validation.MinimumROMs < 1 {
+		validProvider := (c.Provider == "redump" && c.Representation == "discs") || (c.Provider == "no-intro" && c.Representation == "standard" && noIntroSystemID.MatchString(c.ProviderSystemID))
+		if !validProvider || !idPattern.MatchString(c.ProviderSystemID) || len(c.ProviderSystemID) > 64 || !label(c.ExpectedName) || c.Validation.MinimumGames < 1 || c.Validation.MinimumROMs < 1 {
 			return fmt.Errorf("invalid catalog %q", id)
 		}
 		if id != c.Provider+"/"+c.SystemID+"/"+c.Representation {

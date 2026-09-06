@@ -81,6 +81,21 @@ jobs:
             cat publication-summary.json
             printf '\n```\n\nAcquisition failures preserve the last working artifact. Deployment is verified in subsequent steps.\n'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Check No-Intro SNES or record publication pause
+        env:
+          SNES_ENABLED: ${{ vars.NOINTRO_SNES_PUBLISH_ENABLED }}
+        run: |
+          set -euo pipefail
+          if [ "$SNES_ENABLED" = true ]; then
+            ./bin/publisher --output output --definitions definitions --catalog no-intro/snes/standard > nointro-summary.json
+          else
+            ./bin/publisher --output output --definitions definitions --catalog no-intro/snes/standard --paused > nointro-summary.json
+          fi
+          {
+            printf '### No-Intro acquisition result\n\n```json\n'
+            cat nointro-summary.json
+            printf '\n```\n\nMirroring requires the No-Intro qualification gate. Failures retain the last working DAT.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Check out data repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:

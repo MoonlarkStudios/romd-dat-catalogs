@@ -9,5 +9,16 @@
       "minimumGames": 10000,
       "minimumRoms": 50000
     }
+  },
+  "no-intro/snes/standard": {
+    "systemId": "snes",
+    "provider": "no-intro",
+    "providerSystemId": "49",
+    "representation": "standard",
+    "expectedName": "Nintendo - Super Nintendo Entertainment System",
+    "validation": {
+      "minimumGames": 4000,
+      "minimumRoms": 4000
+    }
   }
 }

@@ -1,6 +1,9 @@
 # Upstream qualification: No-Intro and Redump
 
-Current PlayStation decision: see [the official redump.info qualification](redump-psx-qualification.md). It supersedes the acquisition and redistribution gates below for the standard PSX DAT only. Other providers remain unqualified.
+Current PlayStation decision: see [the official redump.info qualification](redump-psx-qualification.md). It supersedes the acquisition and redistribution gates below for the standard PSX DAT only. The [No-Intro SNES investigation](nointro-snes-qualification.md) supersedes the earlier
+failed acquisition probe: anonymous HTTPS acquisition now works, while its
+public DAT-enabled records are now reconciled and the operator has approved
+redistribution/retention; deployment remains pending. Other catalogs remain unqualified.
 
 Historical observations, 2026-09-06 UTC (2026-09-05 America/Chicago). This report covers bounded
 public requests and local validation, not permission to mirror, full coverage,

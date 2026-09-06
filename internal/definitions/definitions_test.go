@@ -135,10 +135,41 @@ func TestDeterministicSerialization(t *testing.T) {
 	for id, system := range a.Systems {
 		b.Systems[id] = system
 	}
-	b.Catalogs["redump/psx/discs"] = a.Catalogs["redump/psx/discs"]
+	for id, catalog := range a.Catalogs {
+		b.Catalogs[id] = catalog
+	}
 	x, _ := json.Marshal(a)
 	y, _ := json.Marshal(b)
 	if !bytes.Equal(x, y) {
 		t.Fatal("map insertion order changed output")
+	}
+}
+
+func TestNoIntroRegistryIdentity(t *testing.T) {
+	r, err := LoadSource("../../definitions")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := r.Catalogs["no-intro/snes/standard"]
+	if c.SystemID != "snes" || c.Provider != "no-intro" || c.ProviderSystemID != "49" || c.ExpectedName != "Nintendo - Super Nintendo Entertainment System" || c.Representation != "standard" {
+		t.Fatal("wrong stable No-Intro identity", c)
+	}
+	for _, system := range []string{"0", "049", "snes", "49?token=x"} {
+		bad := c
+		bad.ProviderSystemID = system
+		r.Catalogs["no-intro/snes/standard"] = bad
+		if err := r.Validate(); err == nil {
+			t.Fatal("invalid upstream identifier", system)
+		}
+	}
+	r.Catalogs["no-intro/snes/standard"] = c
+	prior, err := LoadSource("../../definitions")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.ProviderSystemID = "24"
+	r.Catalogs["no-intro/snes/standard"] = c
+	if err := r.Compatible(prior); err == nil {
+		t.Fatal("silent provider reassignment")
 	}
 }

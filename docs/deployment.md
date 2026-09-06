@@ -254,3 +254,74 @@ permits metadata reuse. The standard PlayStation DAT is qualified for centralize
 mirroring; see [scope, provenance, and evidence](redump-psx-qualification.md).
 Enable only `REDUMP_PSX_PUBLISH_ENABLED` after deploying the reviewed tooling pin.
 Do not infer qualification for No-Intro, restricted exports, BIOS, or other platforms.
+
+
+## Gated No-Intro SNES slice
+
+The reusable workflow also selects `no-intro/snes/standard` when
+`NOINTRO_SNES_PUBLISH_ENABLED=true`. Keep it unset/false until the reviewed rollout below.
+[Public-catalog reconciliation and operator redistribution approval](nointro-snes-qualification.md)
+are recorded for this slice.
+Definition availability is not publication authorization. A never-enabled
+catalog is not invented; a paused existing catalog retains its DAT.
+
+After qualification, update both data caller pins to the reviewed tooling commit
+and use the existing once-daily/manual workflow. The anonymous official form
+runs centrally, preserving all selected public entries. No credentials or new
+secrets are required. Existing online role keys sign the catalog index and RSS;
+root keys stay offline. Export writes `no-intro/snes/standard.dat` before signing
+its exact immutable commit URL. ZIP changes alone do not commit DATs or notify
+RSS; routine metadata renewal still occurs. Failures retain the last document.
+
+Deploy compatible reader binaries before publishing the extended registry:
+older strict readers reject the newly supported provider. No ROMD runtime code
+is changed by the publisher PR; review the signed candidate contract described
+in the qualification document.
+
+
+## No-Intro rollout walkthrough
+
+The reader is the `distribution` executable built by this repository. It verifies
+TUF metadata, reads shared reference data, and downloads a system-bound candidate
+for ROMD. Older builds reject the newly supported `no-intro` provider or its
+hyphenated Git paths. Even a disabled catalog definition enters the shared signed
+registry, so reader deployment precedes the publisher pin update. No schema,
+root-key, or ROMD database migration is required by this change.
+
+1. **Review and merge the tooling change when authorized.** Record its actual
+   reviewed commit on `main`; a squash merge may have a different SHA from the PR
+   head. Build that revision with `mise install` and `mise run check`.
+2. **Hand the reader contract to the ROMD application owner.** Package/deploy the
+   resulting `bin/distribution` wherever ROMD runs `reference-data` or `candidate`.
+   If a consumer implements verification itself, it must accept the new registry
+   provider and immutable path. Preserve its independently pinned public root,
+   existing TUF cache, publisher identity, and installed DATs. Never reset cached
+   metadata versions to make an update pass. The candidate output contract stays
+   `candidate.json` plus byte-exact `candidate.dat`, with shared `systemId: snes`.
+   The application owner confirms its configured reader was replaced and current
+   PSX/reference-data checks still work; publisher CI cannot establish deployment
+   inside ROMD. No application checkout is edited by this publisher task.
+3. **Review and deploy the data caller pin.** Update both its reusable-workflow
+   reference and `tooling_ref` to the same reviewed tooling commit. Merge the data
+   PR only after compatible readers are in place. Keep SNES disabled for this
+   first run if a separate metadata-only compatibility check is useful.
+4. **Enable the approved SNES slice and run one publication.** Set only
+   `NOINTRO_SNES_PUBLISH_ENABLED=true` in the data repository and invoke the
+   existing workflow, with bootstrap false and migration site empty. Existing
+   online keys and root metadata are reused. The workflow restores authenticated
+   state, downloads centrally, commits the uncompressed DAT before referencing it,
+   signs the new index/RSS, verifies public hashes, deploys Pages, and restores the
+   deployed result to verify its signature chain. It must advance existing metadata
+   versions. The normal daily schedule then uses the same path.
+5. **Verify the client-facing result before calling the slice live.** Use the
+   updated reader's `reference-data` and `candidate --catalog no-intro/snes/standard
+   --name 'Nintendo - Super Nintendo Entertainment System'` against the existing
+   Pages URL and pinned root, using its normal cache and a fresh output directory.
+   Check system `snes`, the published document hash/size, and a full immutable Git
+   commit URL. Confirm RSS's corresponding content event. A second unchanged run
+   must keep the DAT commit/content event; metadata signatures may renew. ROMD's
+   preview/approval/activation acceptance remains owned by the application work.
+
+These steps are a walkthrough, not authorization to merge or dispatch a public
+publication. On this follow-up the operator approved redistribution/retention;
+no deployment action was performed. No new signing keys or credentials are needed.
