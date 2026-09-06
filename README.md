@@ -18,7 +18,8 @@ library](docs/redump-adapter.md) has a qualified PSX workflow path. No
 additional public upstream DAT mirrors are enabled.
 The [No-Intro SNES adapter](docs/nointro-snes-qualification.md) has demonstrated
 anonymous official acquisition and local publication; its public mirror remains
-gated on redistribution and completeness qualification. An operator-driven [candidate reader](docs/romd-candidate.md)
+gated on reviewed deployment after public-catalog reconciliation and operator
+redistribution approval. An operator-driven [candidate reader](docs/romd-candidate.md)
 is available for the first ROMD review integration. Do not enable production
 AutoApply against synthetic catalogs.
 

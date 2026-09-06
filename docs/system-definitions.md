@@ -51,7 +51,7 @@ validates definitions before restoring or acquiring any source.
 Publication selection is separate: the workflow selects
 `redump/psx/discs` with `REDUMP_PSX_PUBLISH_ENABLED=true` and
 `no-intro/snes/standard` with `NOINTRO_SNES_PUBLISH_ENABLED=true`. The latter
-must remain disabled pending [No-Intro qualification](nointro-snes-qualification.md). Adding a
+remains disabled pending [reviewed No-Intro rollout](nointro-snes-qualification.md). Adding a
 catalog definition does not opt it into acquisition or public mirroring.
 Unknown selection or malformed definitions fails before acquisition. The old
 hardcoded `redump-psx` command has been replaced by `--catalog`.

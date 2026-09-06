@@ -6,7 +6,8 @@ Investigated 2026-09-06 UTC. Scope: `no-intro/snes/standard`, stable system
 SNES investigation. No ROMD application checkout was changed.
 
 **Status: real anonymous acquisition and local publication demonstrated;
-public mirroring remains disabled and unqualified.** Synthetic signed-distribution
+the public DAT selection is reconciled and redistribution/retention is operator-approved.
+Public mirroring remains disabled pending rollout review.** Synthetic signed-distribution
 checks are separate from real upstream and production acceptance below.
 
 ## Official acquisition
@@ -64,34 +65,86 @@ original bytes; never invent values. Other ROMs need an unsigned numeric size
 and correctly shaped CRC32/MD5/SHA1 fields; SHA256 is checked when supplied.
 These checks establish structure, not authenticity of game dumps.
 
-The official export measured below contains 4,358 games/ROMs, including 202 names
-with the Aftermarket tag, 28 nodump ROMs, and 18 baddump ROMs. The contemporaneous
-[download listing](https://datomatic.no-intro.org/index.php?page=download&s=49)
-reports `#4375`. **The 17-record discrepancy is unresolved.** The official
-[aftermarket guide](https://wiki.no-intro.org/index.php?title=Aftermarket_Guide)
-describes private entries, but that alone does not prove the cause here.
-Do not describe this export as independently reconciled against the whole
-upstream database or enable mirroring until the discrepancy is understood.
-Private records, Source Code SNES, Satellaview, and other separate systems are
-not silently enrolled. The registry's 4,000-game/ROM floors are anomaly checks,
-not completeness evidence or a license to omit entries.
+The official export contains 4,358 games/ROMs, including 202 names with the
+Aftermarket tag, 28 nodump ROMs, and 18 baddump ROMs. A follow-up reconciliation
+on 2026-09-06 compared it with two independent official public exports at the
+same version, `20260818-050713`:
 
-## Redistribution gate
+| Official surface | Records | Meaning |
+| --- | ---: | --- |
+| Download overview | 4,375 | Summary counter; does not match public database/search |
+| Public search | 4,361 | Unfiltered public search result total |
+| Dumplog CSV | 4,361 | Unique public archive IDs |
+| Database XML export | 4,361 | Same archive-ID set as the dumplog |
+| Database XML with `dat="0"` | 3 | Explicit upstream DAT exclusions |
+| Database XML remaining IDs | 4,358 | Exact ID-set match with the downloaded DAT |
 
-The [current terms](https://datomatic.no-intro.org/stuff/terms.txt) describe project
-purpose, disclaimers, and trademarks. The sampled DAT preserves author credits,
-trademark and piracy notices. Neither inspected source establishes an explicit
-basis for ROMD's public mirror and indefinite Git retention. Public availability,
-robots guidance, third-party mirrors, and Redump's separate terms do not supply
-that qualification. This is an unresolved qualification, not a claim that
-No-Intro forbids redistribution.
+The three excluded records are:
 
-Before enabling `NOINTRO_SNES_PUBLISH_ENABLED=true`, record the applicable
-redistribution/retention basis, attribution/removal obligations, resolution of
-the export-count discrepancy, and approval of this one catalog. Keep the variable
-unset or false until then. No upstream DAT, credentials, session material, or
-private signing keys are committed. No public upstream data publication was
-performed by this change.
+- `4133`: Jeopardy! (Unknown) (Beta), no dump.
+- `4220`: Chrono Trigger (Japan) (Final Fantasy Chronicles).
+- `4221`: Chrono Trigger (Japan) (Beta) (Final Fantasy Chronicles).
+
+All three have `dat="0"` on their database `<archive>` element. The two Chrono
+Trigger records also carry the upstream sticky note that in-game dialogs appear
+corrupted. We preserve the official export selection; we do not synthesize or
+insert these intentionally excluded database records into the DAT.
+
+Every eligible public database ID appears in the DAT, with no additional DAT
+IDs. All 4,330 dumped ROMs match size and every supplied CRC32/MD5/SHA1/SHA256
+against a source or release file in the corresponding database archive. The
+other 28 entries remain nodump, with unknown sizes/hashes preserved. Names
+match except for the expected `[UNDUMPED]` suffix on those 28 DAT entries.
+This establishes completeness against the public DAT-enabled database snapshot,
+not completeness of No-Intro's non-public data or independently verified ROMs.
+
+The original 17-record difference therefore decomposes into **three deliberate
+DAT exclusions and a 14-record overview-versus-public-database difference**.
+Public search, dumplog, and database XML agree on the lower total. The reason for
+those remaining 14 summary-counter entries is not exposed by the inspected
+public surfaces. A stale counter or non-public records are possible explanations,
+not established facts. Do not claim all 17 are private records. The overview
+counter is unsuitable as an exact DAT acceptance count; the complete ID-set
+reconciliation is stronger evidence that our acquisition loses no eligible
+public records. No further mirroring-completeness gate is imposed solely by
+that unexplained aggregate counter.
+
+Evidence sources:
+
+- [Download overview](https://datomatic.no-intro.org/index.php?page=download&s=49).
+- [Public search](https://datomatic.no-intro.org/index.php?page=search&s=49),
+  ordinary blank full-name search: `Showing: 200/4,361 item(s).`
+- [Dumplog](https://datomatic.no-intro.org/index.php?page=download&op=dumplog&s=49):
+  803,608 extracted CSV bytes, SHA256
+  `3317fba6714269dee26f3bf40024a1c7d0cf2ae5ea48daf865b8f7941997d5a3`.
+- [Database export](https://datomatic.no-intro.org/index.php?page=download&op=db&s=49):
+  7,953,728 extracted XML bytes, SHA256
+  `bb622ba7734557fb07b02a8d1809fbbad6178bc544bbbabeedcfa4d8f3c157b3`.
+- Public records [4133](https://datomatic.no-intro.org/index.php?page=show_record&s=49&n=4133),
+  [4220](https://datomatic.no-intro.org/index.php?page=show_record&s=49&n=4220),
+  and [4221](https://datomatic.no-intro.org/index.php?page=show_record&s=49&n=4221).
+
+The reconciliation used bounded anonymous downloads with five-second pacing,
+then local ID and file-field comparisons. Upstream exports and the disposable
+probe are not committed. It does not add daily database downloads, scraping,
+platform enrollment, or scheduling infrastructure. The registry's 4,000-game/ROM
+floors remain anomaly checks, not exact expected counts.
+
+## Redistribution and rollout authorization
+
+The operator confirmed redistribution and retention approval for this scoped
+No-Intro mirror on 2026-09-06. That gate is accepted; it is not inferred from
+robots guidance or Redump's separate terms. The inspected
+[terms](https://datomatic.no-intro.org/stuff/terms.txt) and original DAT author,
+trademark, and piracy notices remain preserved. This record does not invent an
+upstream license grant or publish private operator qualification records.
+
+`NOINTRO_SNES_PUBLISH_ENABLED` remains unset/false until the reviewed deployment
+step. The implementation and data-pin PRs remain unmerged. Reader rollout and
+one independently verified signed public publication are the remaining deployment
+steps; see [the rollout walkthrough](deployment.md#no-intro-rollout-walkthrough).
+This follow-up did not publish a DAT, change a secret/variable, merge a PR, or
+contact upstream. No credentials, session material, or private keys are committed.
 
 ## Evidence and acceptance boundaries
 
