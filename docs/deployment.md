@@ -26,6 +26,24 @@ This proves synthetic Git-backed publication and site migration, not public
 Redump acquisition or a new ROMD UI/activation/hardware acceptance run. The
 existing private ROMD demo configuration was not changed.
 
+## Shared reference-data publication
+
+The data workflow now pins tooling revision
+`19f983c0e58d62e7f97ba8bf860c6d1a8c289fde`. The
+[initial reference-data run](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/34039634452)
+and [restoration/unchanged run](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/34039736902)
+both passed, advancing signed metadata to versions 3004 and 3005. Independent
+verification reused the existing root/cache and confirmed that public
+[reference-data.json](https://moonlarkstudios.github.io/romd-dat-data/reference-data.json)
+matched its TUF target, the signed index definitions, and restored local state.
+
+The snapshot contains one system (PSX), its catalog definition, and 15 company
+identities. Its SHA-256 is
+`95268b885395daa596a7561f7d714b39916e65a42bac25d106c47f1289aa86bd`.
+It stayed identical on the second run, with no additional data-repository
+commit. The synthetic candidate also passed independent reader verification.
+PSX acquisition remains disabled; this publishes reference data, not a PSX DAT.
+
 ## Development and verification
 
 Run `mise trust`, `mise install`, then `mise run check` (race tests, vet,
