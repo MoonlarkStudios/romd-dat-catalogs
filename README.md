@@ -5,12 +5,12 @@ subscriptions. Complete upstream catalogs come first; future 1G1R filtering
 belongs in ROMD's library layer.
 
 **Current status: live signed synthetic publisher.**
-[Public RSS](https://moonlarkstudios.github.io/romd-dat-catalogs/feed.xml) ·
+[Public RSS](https://moonlarkstudios.github.io/romd-dat-data/feed.xml) ·
 [Deployment runbook](docs/deployment.md)
 
 The local publisher still emits explicitly unsigned intermediate state. The
 distribution command wraps it with TUF-authenticated catalog/feed targets for
-GitHub Pages. The pending workflow stores complete uncompressed DATs in a
+GitHub Pages. The live workflow stores complete uncompressed DATs in a
 separate public data repository and signs full-commit raw URLs. That repository
 also hosts Pages/RSS, calling a pinned reusable workflow from this tooling repo; routine Releases
 and recovery archives are no longer the storage model. The [Redump acquisition

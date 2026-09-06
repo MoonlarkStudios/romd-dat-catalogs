@@ -1,16 +1,30 @@
 # Signed catalog deployment
 
 The companion repository contains Go tooling, workflows, fixtures, and platform
-identities. A separate public data repository (proposed name
-`MoonlarkStudios/romd-dat-data`) contains complete, uncompressed DAT documents at
+identities. The separate public data repository
+`MoonlarkStudios/romd-dat-data` contains complete, uncompressed DAT documents at
 stable paths, for example `redump/psx/discs.dat`. Git retains older versions.
 There is no automated trimming or history rewriting.
 
-Status: the currently deployed site at
-https://moonlarkstudios.github.io/romd-dat-catalogs/ is the signed synthetic
-prototype. The pending workflow uses Git-backed data; it has not been deployed.
-No public upstream mirror is enabled. Establish redistribution conditions before
-enabling PSX. This change does not qualify other Redump platforms or No-Intro.
+Status (2026-09-06): the data repository's Pages site is live at
+https://moonlarkstudios.github.io/romd-dat-data/, with RSS at
+https://moonlarkstudios.github.io/romd-dat-data/feed.xml. It publishes only the
+hand-authored synthetic catalog. Daily metadata renewal is enabled; public
+PSX mirroring remains explicitly disabled pending redistribution qualification.
+
+The [migration run](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/34016250699)
+and [ordinary unchanged run](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/34016317753)
+both passed. Independent local verification reused the old site's pinned root
+and TUF cache: metadata advanced from 3001 to 3002 to 3003. The second publication
+kept data commit `867713188e3360334785dd13ef76aea4ade0cb57` unchanged. Its only
+DAT is `synthetic/console/standard.dat` (411 bytes, SHA-256
+`86ac64a0c11c1c8f2c864fc57589de00d5dba85821c8a495034e463248bd68e9`).
+The candidate reader verified the new public URL; RSS bytes matched the verified
+TUF feed target. No Releases or recovery archives were created in the data repo.
+
+This proves synthetic Git-backed publication and site migration, not public
+Redump acquisition or a new ROMD UI/activation/hardware acceptance run. The
+existing private ROMD demo configuration was not changed.
 
 ## Development and verification
 
@@ -68,10 +82,12 @@ The ordinary `GITHUB_TOKEN` writes that repository; no cross-repository token or
 `DAT_DATA_REPOSITORY` variable is needed. Tooling checkout credentials are not
 persisted. The offline root key remains outside CI.
 
-The expected canonical site is
+The canonical site is
 `https://moonlarkstudios.github.io/romd-dat-data/`, with RSS at `/feed.xml`.
-The current tooling-repository site remains the old synthetic prototype until
-cutover. No live migration or data-repository provisioning is implied by this PR.
+The tooling-repository site is the old prototype and no longer renews its
+metadata. Its old Releases remain intact; the old RSS URL is not redirected.
+Use the data site for new clients. The steps below document the completed
+cutover and remain the procedure for an equivalent future site move.
 
 Before deploying the cutover:
 
@@ -198,8 +214,8 @@ real local Git commits, unchanged ZIP repackaging, failed acquisition retention,
 changed documents, older immutable URLs after branch advancement, latest-only
 restoration, and immutable URL restrictions. Existing signature, wrong-root,
 expiry, rollback, tampering, and candidate-binding tests remain.
-These are not evidence of live GitHub deployment, public Redump redistribution,
-or a new ROMD activation/hardware test.
+These local tests complement the live synthetic runs recorded above. Neither
+establishes public Redump redistribution or a new ROMD activation/hardware test.
 
 Qualification status (2026-09-06): indexed official Redump overview text supports
 public metadata reuse, but a current copy could not be fetched. Applicable
