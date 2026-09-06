@@ -41,8 +41,9 @@ Earlier local qualification measured a No-Intro 3DS document and observed
 changing Redump ZIP bytes with identical extracted document hashes. Those are
 historical observations, not a pass for this SNES workflow. A previous daily
 pack request exceeded a 40 MB probe cap; a complete daily pack has not been
-validated. The current 64 MiB synthetic recovery archive design must be qualified
-or revised before full-source publication.
+validated. The former 64 MiB synthetic recovery archive is superseded for public
+publication by latest-only signed indexes and complete DATs in a separate Git
+repository. Full-source acquisition still requires its own size qualification.
 
 ## Automation and distribution evidence
 

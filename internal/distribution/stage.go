@@ -32,7 +32,7 @@ type Index struct {
 	Format    string             `json:"format"`
 	Version   int64              `json:"version"`
 	Snapshot  publisher.Snapshot `json:"snapshot"`
-	State     Asset              `json:"state"`
+	State     Asset              `json:"state,omitzero"`
 	Downloads map[string]Asset   `json:"downloads"`
 }
 type StageOptions struct {
@@ -163,10 +163,6 @@ func Stage(opt StageOptions) (Index, error) {
 	if e = save(opt.Output, "assets/state.zip", archive.Bytes()); e != nil {
 		return result, e
 	}
-	indexBytes, e := json.Marshal(result)
-	if e != nil {
-		return result, e
-	}
 	feed, e := publisher.VerifiedRead(opt.State, snapshot.Feed)
 	if e != nil {
 		return result, e
@@ -179,6 +175,18 @@ func Stage(opt StageOptions) (Index, error) {
 	// The RSS channel itself links to the companion repository.
 	repositoryURL := strings.Split(release, "/releases/download/")[0] + "/"
 	feed = bytes.ReplaceAll(feed, []byte("https://catalogs.example.invalid/"), []byte(repositoryURL))
+	return signIndex(opt, result, feed)
+}
+
+func signIndex(opt StageOptions, result Index, feed []byte) (Index, error) {
+	root, e := readRoot(opt.TrustDir)
+	if e != nil {
+		return result, e
+	}
+	indexBytes, e := json.Marshal(result)
+	if e != nil {
+		return result, e
+	}
 	targets := metadata.Targets(opt.Now.Add(30 * 24 * time.Hour))
 	targets.Signed.Version = opt.Version
 	site := filepath.Join(opt.Output, "site")

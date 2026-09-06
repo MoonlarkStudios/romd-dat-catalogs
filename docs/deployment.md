@@ -1,77 +1,126 @@
 # Signed catalog deployment
 
-Status: synthetic publication is live at
-https://moonlarkstudios.github.io/romd-dat-catalogs/. See the Release notes and
-Actions runs for deployment evidence.
-This environment publishes hand-authored synthetic DATs only. No upstream
-mirroring permission or ROMD beta acceptance is implied.
+The companion repository contains Go tooling, workflows, fixtures, and platform
+identities. A separate public data repository (proposed name
+`MoonlarkStudios/romd-dat-data`) contains complete, uncompressed DAT documents at
+stable paths, for example `redump/psx/discs.dat`. Git retains older versions.
+There is no automated trimming or history rewriting.
 
-## Development
+Status: the currently deployed site at
+https://moonlarkstudios.github.io/romd-dat-catalogs/ is the signed synthetic
+prototype. The pending workflow uses Git-backed data; it has not been deployed.
+No public upstream mirror is enabled. Establish redistribution conditions before
+enabling PSX. This change does not qualify other Redump platforms or No-Intro.
 
-Run `mise trust`, `mise install`, then `mise run check`. Go, actionlint, and
-ShellCheck versions live in `.mise.toml`; CI uses the same configuration.
-`mise run smoke` exercises the local unsigned publisher. `mise run build`
-creates `bin/publisher` and `bin/distribution`. The TUF dependency and its
-transitive libraries are pinned in `go.mod`/`go.sum`.
+## Development and verification
 
-## Trust and layout
+Run `mise trust`, `mise install`, then `mise run check` (race tests, vet,
+formatting, actionlint/ShellCheck, and builds). Git must also be available;
+new lifecycle tests exercise real local Git commits without network access.
+Go and validation tool versions are pinned in `.mise.toml`. `mise run smoke`
+exercises the unsigned local publisher. No Python runtime is needed.
 
-The implementation uses [go-tuf/v2](https://github.com/theupdateframework/go-tuf)
-and its updater verification workflow. Clients start with a pinned public
-`trust/1.root.json`, supplied independently of the download server. Never use
-trust-on-first-use. Keep the client metadata cache for rollback detection.
+## Data and trust contracts
 
-Each role has a separate Ed25519 key with threshold one. The root private key
-stays on the operator machine, outside CI. `online.json` contains only targets,
-snapshot, and timestamp private keys. This initial single-operator trust setup
-does not claim resilience to compromise of the offline root key. Recovery from
-that compromise requires distributing a new trusted root out of band.
+Only changed extracted DAT bytes produce a data commit. ZIP repackaging, check
+timestamps, signed metadata renewal, and failed acquisition produce no DAT
+change. The workflow exports only current documents, compares the Git index,
+and commits/pushes only if that index changed. Store DATs without Git LFS or
+text conversion (`*.dat -text -filter` in the data repository's `.gitattributes`).
+Git's own internal object compression is independent of the raw documents served
+to clients.
+
+Signed catalog format `romd-signed-catalog-2` binds every current document's
+length and SHA-256 to a raw GitHub URL containing a full 40-character commit ID:
+`https://raw.githubusercontent.com/OWNER/DATA_REPO/COMMIT/redump/psx/discs.dat`.
+Branch URLs, short commits, query strings, and fragments are rejected. The data
+commit is pushed and all referenced raw documents are downloaded/hash-verified
+before Pages advances. Never force-push or rewrite data history: that could
+break URLs in previously signed indexes. No historical browsing or publisher
+rollback service is a beta requirement. ROMD owns its installed active document
+locally and validates/reviews each update before activation.
+
+Pages publishes the signed index and RSS using the existing pinned trust root
+and [go-tuf/v2](https://github.com/theupdateframework/go-tuf). Clients verify the
+root chain, signatures, expiry, cached versions, and exact document hash/size.
+The root is supplied independently; never use trust-on-first-use. Preserve the
+client cache for rollback detection. Old `ae48371` candidate readers understand
+only format 1 and must be rebuilt from this Git-format implementation before
+cutover. The `candidate.json` contract consumed by ROMD does not change. Older
+readers fail closed; they do not activate an unverified update.
 
 Root metadata expires after one year; targets after 30 days; snapshot after
-seven days; timestamp after 48 hours. Expired metadata prevents new updates;
-it does not remove already installed catalogs. The daily workflow refreshes
-freshness metadata even when DAT bytes are unchanged. The RSS feed emits no
-duplicate content-change event for unchanged documents.
+seven days; timestamp after 48 hours. Daily runs renew signatures even when DAT
+bytes are unchanged. Latest-only RSS keeps one content-change event per catalog
+with a stable GUID across unchanged checks. RSS is a notification hint; clients
+reconcile against the verified full index. The plain `/feed.xml` is not a trust
+entry point. Historical feed browsing is not provided.
 
-Pages serves versioned TUF metadata, hash-prefixed `catalog.json` and `feed.xml`
-targets, and a stable `/feed.xml` for readers. The plain RSS alias is a hint;
-clients verify the TUF target before relying on its content. Signed catalog
-indexes bind exact download URLs, sizes, and SHA-256 values for Release assets.
-The unsigned `current.json` lives only inside the authenticated recovery archive;
-it is not the public trust entry point.
+## Configure the Git-backed workflow
 
-Each Release contains the current/referenced DAT and metadata objects plus
-`state.zip`. Only reachable publisher objects are included, so unreferenced
-local history does not grow recovery archives indefinitely. Release state is
-capped at 64 MiB expanded and compressed for this synthetic deployment. Referenced
-objects are republished per Release; this is not the final incremental storage
-design for complete upstream catalogs. Old Releases are retained. Pages switches
-metadata sets as a deployment; an in-flight client holding a previous timestamp
-may need to refresh after a deployment rather than assume old Pages paths persist.
+The existing `publish-synthetic.yml` filename, concurrency group, and run-number
+version counter remain intact. Do not recreate it or bootstrap to reset trust.
+The initial migration can read the existing signed format-1 recovery archive;
+subsequent runs reconstruct disposable local state using only format-2 signed
+metadata and latest DATs. Routine runs create no Releases or recovery archives.
+Existing Releases are left intact for old references and the initial migration.
+The legacy `stage --release-base` path remains only for existing local demo
+bundles; it is not called by the publishing workflow.
 
-## Initial setup
+Before merging/deploying the cutover:
 
-These initialization commands are for a new, independent deployment. The
-MoonlarkStudios deployment already has a committed trust root; recover its
-existing keys from private operational records instead of generating a replacement.
-A repository transfer does not reset trust or metadata versions.
+1. Initialize the separate public data repository with a default branch and
+   `.gitattributes` containing `*.dat -text -filter`. Do not add upstream DATs
+   until redistribution is qualified. Synthetic fixtures can test deployment.
+2. Set `DAT_DATA_REPOSITORY` to its `OWNER/REPO` name. Configure `DAT_DATA_TOKEN`
+   as a fine-grained credential with Contents read/write scoped only to that
+   data repository. The normal `GITHUB_TOKEN` cannot push to a different repo.
+   No data token is needed by public ROMD readers. Never log the token.
+3. Preserve existing `TUF_ONLINE_KEYS` and the committed public root chain.
+   Rebuild deployed candidate readers for signed format 2.
+4. Manually dispatch `publish-synthetic.yml` without bootstrap and verify its
+   deployed signature chain, downloaded DAT hashes, and restored latest state.
+5. Set `DAT_PUBLISH_ENABLED=true` for the daily schedule. The old
+   `SYNTHETIC_PUBLISH_ENABLED` variable is no longer consulted. An unset data
+   repository or disabled schedule means no daily metadata renewal; complete
+   configuration before the existing 48-hour timestamp expires.
+6. Only after qualification, set `REDUMP_PSX_PUBLISH_ENABLED=true` to acquire
+   the complete PSX catalog over its explicitly supported HTTP endpoint.
+   Without this flag, no real-source acquisition occurs.
 
-Initialize keys once in a private local directory; this command refuses to
-overwrite an existing directory:
+Every run checks in the same Go/toolchain environment, restores authenticated
+latest state, acquires/validates into staging, exports DATs, conditionally commits
+and pushes data, signs the index/feed, verifies public commit URLs, and deploys
+Pages. A final check verifies the deployed exact metadata version and restores
+latest state. A competing data push fails normally; retry the workflow. Never
+force-push or introduce remote checkpoints to resolve it.
 
-```sh
-mise run build
-./bin/distribution init --out .keys/synthetic-initial
-mkdir -p trust
-cp .keys/synthetic-initial/public/1.root.json trust/1.root.json
-gh secret set TUF_ONLINE_KEYS < .keys/synthetic-initial/online.json
-gh api --method POST repos/MoonlarkStudios/romd-dat-catalogs/pages -f build_type=workflow
-```
+The data checkout includes history so `git count-objects -vH` in the run summary
+can expose stored-object growth. This is a measurement, not a storage budget or
+a precise GitHub quota reading. Also inspect current document sizes and actual
+change frequency before broader coverage. No cleanup engine, bounded history,
+or incremental patch format is introduced. Issue #12 tracks growth measurement.
 
-Commit only the public root file. Keep `offline-root.json` and `online.json`
-out of Git, logs, Pages artifacts, and Releases. Key files use mode 0600.
-Back up the private directory securely before relying on this trust root.
-GitHub secret values cannot be recovered by reading the secret back.
+## Publication failure and pause
+
+Provider failures are signed as failed health while keeping the last document
+and its successful/change timestamps. Installed ROMD catalogs remain usable;
+new update checks show a failure and offer retry. A paused existing PSX catalog
+is reported as `publication_paused`, without deleting its DAT. A never-enabled
+catalog is not invented. Keep ordinary metadata publication enabled while
+pausing acquisition. Previously public DATs remain in Git history.
+
+Failures during restoration, signing, data push, public hash verification, or
+Pages deployment are visible Actions failures. A data commit made before a
+later failure is harmless: retry exports the same bytes and reuses that commit.
+Pages never advances before public documents are verified. Metadata versions
+use `GITHUB_RUN_NUMBER * 1000 + GITHUB_RUN_ATTEMPT` and must exceed the restored
+signed version. Retry with a new run/attempt, without resetting the counter.
+
+If metadata expires during an outage, restoration deliberately fails closed.
+Do not bootstrap or disable expiry checks. An operator must use a previously
+verified local state, refresh/rotate the root if necessary, and stage a higher
+version. Automatic outage recovery is deferred until demonstrated need.
 
 ### Private key custody
 
@@ -91,48 +140,6 @@ secret values through stdin or restricted private files, never command-line
 arguments, chat, logs, or committed templates. CI must not have access to the
 root-key backup.
 
-After the workflow and public root are merged, start the first deployment:
-
-```sh
-gh workflow run publish-synthetic.yml -f bootstrap=true
-```
-
-Bootstrap requires the public timestamp to return HTTP 404. Other errors fail
-closed, and bootstrap cannot reset an existing publication. After the first
-deployment and an ordinary restore/update run pass, enable the daily schedule:
-
-```sh
-gh workflow run publish-synthetic.yml
-gh variable set SYNTHETIC_PUBLISH_ENABLED --body true
-```
-
-The workflow runs only on main and serializes scheduled/manual publication.
-It uses standard Ubuntu runners, one-day Pages artifact retention, and no
-Actions cache for DAT history. Code PRs never receive publishing secrets.
-No production workflow is automatically enabled merely by merging code.
-
-## Publication ordering and failures
-
-1. Verify the previous Pages metadata using the pinned root and TUF updater.
-2. Download and verify its recovery archive, then restore into a new directory.
-3. Run the synthetic publisher and optional PSX acquisition; sign a private staging bundle using online keys.
-4. Upload a new draft Release; publish it; download every asset and verify hashes.
-5. Upload the Pages bundle and deploy it only after asset verification succeeds.
-6. Verify the deployed signature chain and restore using a fresh client cache.
-
-Every workflow attempt gets a distinct Release tag and monotonic metadata
-version from the workflow run number and attempt. Never recreate or rename the
-workflow to reset its run counter without planning a version migration. Staging
-also rejects a version no greater than the authenticated prior publication.
-No asset upload uses `--clobber`. A failed run can leave an orphan Release but
-cannot advance Pages before asset checks. Retry with a new run/attempt.
-
-If metadata expires during a prolonged outage, the regular restore deliberately
-fails. Do not use bootstrap or disable expiry verification to recover. An
-operator must recover the last independently verified publisher state from a
-trusted local backup, refresh/rotate the root if required, and stage a higher
-metadata version. A failed update is visible in Actions; installed ROMD catalogs remain usable.
-Automated post-expiry recovery is deferred until observed failures justify it.
 
 ## Key rotation
 
@@ -153,52 +160,18 @@ then resume scheduling. Substitute the latest root/version for later rotations.
 Never place the offline root key in CI. Old online keys are rejected by staging
 after rotation; this is exercised by tests with an old pinned client root.
 
-## Verification scope
 
-`mise run check` includes localhost HTTP integration tests for signed target
-download, wrong roots, modified targets/assets, expiry, rollback with cached
-metadata, mixed snapshots, root rotation, state restoration, and staging failure
-that leaves a simulated live publication intact. Tests use freshly generated
-ephemeral keys. Workflow validation uses actionlint and ShellCheck.
+## Validation scope
 
-These tests are not evidence of a completed GitHub Pages deployment, a full
-upstream daily pack, unattended NAS acceptance, or ROMD application activation.
+Local tests exercise format-1 to format-2 migration with the same TUF cache,
+real local Git commits, unchanged ZIP repackaging, failed acquisition retention,
+changed documents, older immutable URLs after branch advancement, latest-only
+restoration, and immutable URL restrictions. Existing signature, wrong-root,
+expiry, rollback, tampering, and candidate-binding tests remain.
+These are not evidence of live GitHub deployment, public Redump redistribution,
+or a new ROMD activation/hardware test.
 
-## Gated PlayStation publication
-
-The existing `publish-synthetic.yml` workflow also supports the complete
-`redump/psx/discs` catalog. Its filename, concurrency group, version counter,
-and signing root deliberately remain unchanged. No second scheduler is needed.
-
-`REDUMP_PSX_PUBLISH_ENABLED` defaults to absent/false. Do not set it until
-current upstream redistribution conditions have been recorded. Merging the
-workflow does not enable public Redump mirroring. Acquisition uses the explicit
-HTTP Redump adapter, without redirect following or automatic retries, and
-validates the expected PlayStation header and minimum catalog coverage.
-
-After qualification, set the variable to `true` and manually dispatch the
-existing workflow without bootstrap. The same opt-in enables its daily run.
-Inspect the run summary for health, exact extracted-document hash, bytes, entry
-counts, and last successful/check/change timestamps. An unchanged document
-keeps its artifact identity and creates no new content-change RSS event.
-Provider failures are signed as failed health while retaining the previous
-artifact; they do not require the workflow to fail before it can report them.
-A failure in restore, signing, upload, or deployment is an Actions failure.
-
-Setting the PSX variable to `false` stops acquisition. On the next publication,
-an existing PSX catalog is marked `publication_paused` with its last working
-artifact retained; a never-enabled catalog is not added. Keep the existing
-synthetic schedule enabled to continue refreshing signed metadata while paused,
-or dispatch manually. Pausing does not revoke or delete previously public DATs.
-
-This is a single-platform observation trial, not approval for broad coverage.
-The current Release/recovery format still duplicates full artifacts and has a
-64 MiB state limit. Before ongoing rollout, address artifact reuse and the
-retention budget in issue #12. Record compressed size and actual change
-frequency; unchanged probes are not evidence of a typical update interval.
-
-Qualification status (2026-09-06): indexed official Redump overview text
-supports public metadata reuse, but its current wiki page could not be fetched
-(HTTP 404, HTTPS unavailable). Automation guidance and applicable distribution
-conditions still need a durable source. No public PSX enable flag has been set.
+Qualification status (2026-09-06): indexed official Redump overview text supports
+public metadata reuse, but a current copy could not be fetched. Applicable
+redistribution conditions still need to be established before enabling mirroring.
 Reference: http://wiki.redump.org/index.php?title=Redump.org
