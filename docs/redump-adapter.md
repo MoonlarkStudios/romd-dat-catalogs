@@ -2,8 +2,10 @@
 
 `internal/redump` implements the first acquisition layer. No CLI or scheduled
 workflow calls it, and no upstream DATs are published by this change. Tests
-use synthetic data and local TLS servers. The real HTTPS endpoint was not
-qualified by the earlier source probe; the adapter does not fall back to HTTP.
+use synthetic data and local HTTP servers. The adapter explicitly targets
+`http://redump.org`, matching the upstream-supported transport. It does not first
+try HTTPS or perform a fallback. Publisher signatures authenticate the published
+bytes; they do not authenticate the upstream HTTP connection.
 
 ## Contract
 
@@ -27,7 +29,7 @@ partial result from such a call. Acquisition never changes publisher state.
 
 ## Network and validation behavior
 
-- HTTPS to Redump, no redirects, no HTTP fallback, no credentials, and an
+- HTTP to the fixed Redump origin, no redirects, no credentials, and an
   identifying User-Agent. Transport injection is private to synthetic tests.
 - One request per catalog with no automatic retries. Calls on the same adapter
   serialize with context-aware admission. Requests have a 30-second timeout
@@ -51,12 +53,17 @@ results; the existing publisher exposes its generic acquisition-failure code.
 
 ## Before live enablement
 
-Establish upstream transport and redistribution conditions; qualify full-source
-coverage and capacity; use the [source-state scheduler](source-state.md) for
-retry deadlines and registry bindings; and integrate review of suspicious changes.
-Optional remote custody and explicit interrupted-run recovery are implemented
-but have not been deployed. Each process must share
-one adapter per provider.
+Establish redistribution conditions, then qualify coverage
+and capacity for the first explicit platform. Connect that candidate to ROMD
+review before expanding source coverage. See the [qualification follow-up](upstream-qualification.md)
+for the current gates and Fresh1G1R takeaways.
+
+The existing [source-state scheduler](source-state.md) can preserve retry
+deadlines and registry bindings. Optional remote custody and interrupted-run
+recovery are implemented but have not been deployed; their deployment or expansion
+is not a prerequisite for the first operator-reviewed slice. Respect upstream
+retry deadlines when manually retrying. Each process must share one adapter per
+provider.
 A new process using the adapter alone does not inherit its in-memory cooldown.
 The scheduler persists admission separately; its integration and recovery
 boundaries are documented in the linked guide.
@@ -67,3 +74,31 @@ count floors, input/expanded limits, redirect rejection, 429/503 batch and
 cross-call cooldown, cancellation, staging ownership, and catalog isolation.
 Run `mise run check` and `mise run smoke`. These tests do not establish real
 Redump availability, sustained throughput, or unattended publication readiness.
+
+
+The HTTP transport decision supersedes the earlier HTTPS-only qualification gate.
+Acquisition results record the HTTP source URL. Existing source-state snapshots
+bind their origin and therefore reject an older HTTPS binding; no deployed real
+source state is known. Do not rewrite a checkpoint to disguise that identity
+change. Use a separate explicitly initialized HTTP state for a trial. No registry
+migration machinery or scheduled real-source publication is added here.
+
+## HTTP validation evidence
+
+On 2026-09-06 UTC, `mise run check` passed (race tests across all seven Go
+packages, vet, formatting, actionlint, and all three CLI builds). `mise run smoke`
+passed with one synthetic catalog and zero failures. `git diff --check` passed.
+The production-constructor test records the exact HTTP request and source URL;
+local HTTP tests exercise unchanged/repackaged content, rejected candidates,
+redirect rejection, backoff, and retention of the prior working artifact.
+
+A disposable local harness used `redump.New()` against
+`http://redump.org/datfile/psx/` and passed the result to the existing local
+publisher. Acquisition plus local publication took 3.947 seconds in this single
+run, with 10,914 disc entries and 60,168 ROM/track records. The extracted-document
+SHA-256 was
+`0d5cffb7feb15aa4297ccaf722c62d2b08f17eb859d6ab7890088d481bf8a18e`,
+matching the earlier baseline. This proves one real HTTP acquisition through
+the changed adapter, not a new upstream version or sustained reliability.
+Temporary upstream data and the probe were removed; nothing was publicly
+published. No ROMD runtime code or deployed demo was changed by this check.

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -31,7 +32,7 @@ func catalog(system string) Catalog {
 }
 func adapter(t *testing.T, h http.HandlerFunc) *Adapter {
 	t.Helper()
-	s := httptest.NewTLSServer(h)
+	s := httptest.NewServer(h)
 	t.Cleanup(s.Close)
 	return newAdapter(s.URL, s.Client().Transport)
 }
@@ -230,9 +231,11 @@ func TestInvalidRegistryMakesNoRequests(t *testing.T) {
 			t.Fatal("accepted invalid registry")
 		}
 	}
-	a.origin = "http://redump.org"
-	if _, e := a.Acquire(context.Background(), []Catalog{catalog("psx")}, filepath.Join(t.TempDir(), "stage")); e == nil {
-		t.Fatal("accepted HTTP")
+	for _, origin := range []string{"https://redump.org", "ftp://redump.org", "http://", "http://user:secret@redump.org", "http://redump.org/path", "http://redump.org?", "http://redump.org?q=x", "http://redump.org#fragment"} {
+		a.origin = origin
+		if _, e := a.Acquire(context.Background(), []Catalog{catalog("psx")}, filepath.Join(t.TempDir(), "stage")); e == nil {
+			t.Fatal("accepted invalid origin")
+		}
 	}
 	if calls.Load() != 0 {
 		t.Fatal("invalid config accessed network")
@@ -276,5 +279,29 @@ func TestCancellationDuringBodyAndAdmission(t *testing.T) {
 	}
 	if len(r) != 1 || r[0].Code != "incomplete_response" || r[0].Attempt.Path != nil {
 		t.Fatalf("cancelled body: %+v", r)
+	}
+}
+
+type requestTransport func(*http.Request) (*http.Response, error)
+
+func (f requestTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestProductionAdapterRequestsHTTPAndRecordsSource(t *testing.T) {
+	raw := fixture(t)
+	a := New()
+	calls := 0
+	a.client.Transport = requestTransport(func(r *http.Request) (*http.Response, error) {
+		calls++
+		if r.Method != http.MethodGet || r.URL.String() != "http://redump.org/datfile/psx/" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL)
+		}
+		if r.Header.Get("Authorization") != "" || r.Header.Get("Cookie") != "" || r.Header.Get("Accept-Encoding") != "identity" || r.Header.Get("User-Agent") == "" {
+			t.Fatal("unexpected acquisition headers")
+		}
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(bytes.NewReader(raw)), ContentLength: int64(len(raw)), Request: r}, nil
+	})
+	result := acquire(t, a, catalog("psx"))[0]
+	if calls != 1 || result.Code != "" || result.SHA256 != publisher.Hash(raw) || result.Attempt.SourceURL != "http://redump.org/datfile/psx/" {
+		t.Fatalf("HTTP acquisition: %+v; calls=%d", result, calls)
 	}
 }
