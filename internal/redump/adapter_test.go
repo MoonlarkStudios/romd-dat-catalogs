@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -258,7 +259,16 @@ func TestCooldownSurvivesNextCall(t *testing.T) {
 func TestCancellationDuringBodyAndAdmission(t *testing.T) {
 	entered := make(chan struct{})
 	release := make(chan struct{})
-	a := adapter(t, func(w http.ResponseWriter, r *http.Request) { w.(http.Flusher).Flush(); close(entered); <-release })
+	a := adapter(t, func(w http.ResponseWriter, r *http.Request) { w.(http.Flusher).Flush(); <-release })
+	defer close(release)
+	transport := a.client.Transport
+	a.client.Transport = requestTransport(func(r *http.Request) (*http.Response, error) {
+		response, err := transport.RoundTrip(r)
+		if err == nil {
+			response.Body = &observedBody{ReadCloser: response.Body, entered: entered}
+		}
+		return response, err
+	})
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	done := make(chan []Result, 1)
@@ -273,13 +283,25 @@ func TestCancellationDuringBodyAndAdmission(t *testing.T) {
 	}
 	cancel()
 	r := <-done
-	close(release)
 	if e := <-errCh; e != nil {
 		t.Fatal(e)
 	}
 	if len(r) != 1 || r[0].Code != "incomplete_response" || r[0].Attempt.Path != nil {
 		t.Fatalf("cancelled body: %+v", r)
 	}
+}
+
+// A server-side Flush does not prove the client has received headers. Observe
+// the body read itself so cancellation exercises the intended failure boundary.
+type observedBody struct {
+	io.ReadCloser
+	entered chan struct{}
+	once    sync.Once
+}
+
+func (b *observedBody) Read(p []byte) (int, error) {
+	b.once.Do(func() { close(b.entered) })
+	return b.ReadCloser.Read(p)
 }
 
 type requestTransport func(*http.Request) (*http.Response, error)

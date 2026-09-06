@@ -83,10 +83,11 @@ must not automatically rewrite those identities.
 
 This change supplies the shared contract and signed copy. It does not yet change
 ROMD's system seeding/enrollment UI or its existing PSX subscription selection.
-Update both pins in the data repository's caller after this tooling change is
-reviewed and merged to publish the definitions. The live workflow is not upgraded
-by merely editing the tooling repository. Public PSX mirroring still requires
-upstream redistribution qualification.
+The live data workflow pins tooling revision
+`19f983c0e58d62e7f97ba8bf860c6d1a8c289fde`. The published snapshot is available at
+https://moonlarkstudios.github.io/romd-dat-data/reference-data.json; verify its TUF
+target before consuming it. Future upgrades must update both caller pins after
+review. Public PSX mirroring still requires upstream redistribution qualification.
 
 ## Company identities and grouping
 
@@ -113,9 +114,8 @@ not change the relationship. Display names and unambiguous aliases can evolve.
 Company data is part of the same signed `reference-data.json` copy and verified index;
 it is never maintained separately in the data repository.
 
-This extends the still-unreleased schema version 1 in PR #15. The running
-publisher has not adopted this registry, so no published-schema conversion is
-needed. It prepares shared seed data and grouping identities; it does not yet
+Schema version 1 is now published as one signed reference-data snapshot.
+It prepares shared seed data and grouping identities; it does not yet
 replace ROMD's DB seeders, add a Fetch latest action, or implement grouping UI.
 Those consumers should preserve DB IDs/local edits and review changes against
 the last-applied shared version.
