@@ -11,7 +11,7 @@ import (
 func copySource(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	for _, name := range []string{"catalogs.json", "companies.json", "systems.json"} {
+	for _, name := range []string{"catalogs.json", "companies.json", "systems.json", "regions.json", "languages.json"} {
 		b, err := os.ReadFile(filepath.Join("../../definitions", name))
 		if err != nil {
 			t.Fatal(err)
@@ -29,7 +29,7 @@ func TestSourceAssembly(t *testing.T) {
 	}
 	dir := copySource(t)
 	// Formatting and file creation order do not alter the assembled snapshot.
-	for _, name := range []string{"systems.json", "companies.json", "catalogs.json"} {
+	for _, name := range []string{"systems.json", "companies.json", "catalogs.json", "regions.json", "languages.json"} {
 		path := filepath.Join(dir, name)
 		b, err := os.ReadFile(path)
 		if err != nil {
@@ -63,7 +63,7 @@ func TestSourceAssembly(t *testing.T) {
 func TestSourceFailures(t *testing.T) {
 	cases := map[string]func(string) error{
 		"missing category": func(d string) error { return os.Remove(filepath.Join(d, "companies.json")) },
-		"unknown category": func(d string) error { return os.WriteFile(filepath.Join(d, "regions.json"), []byte(`{}`), 0600) },
+		"unknown category": func(d string) error { return os.WriteFile(filepath.Join(d, "unknown.json"), []byte(`{}`), 0600) },
 		"duplicate key": func(d string) error {
 			return os.WriteFile(filepath.Join(d, "systems.json"), []byte(`{"psx":{"name":"Sony PlayStation","manufacturerIds":["sony"]},"psx":{"name":"Sony PlayStation","manufacturerIds":["sony"]}}`), 0600)
 		},

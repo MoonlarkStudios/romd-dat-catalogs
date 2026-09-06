@@ -20,9 +20,39 @@ import (
 const MaxBytes = 1 << 20
 
 type System struct {
-	Name            string   `json:"name"`
-	ManufacturerIDs []string `json:"manufacturerIds"`
+	Name             string            `json:"name"`
+	ManufacturerIDs  []string          `json:"manufacturerIds"`
+	Aliases          []string          `json:"aliases,omitempty"`
+	ProviderMappings map[string]string `json:"providerMappings,omitempty"`
 }
+type Region struct {
+	Name      string   `json:"name"`
+	SortOrder int      `json:"sortOrder"`
+	Aliases   []string `json:"aliases"`
+}
+type Language struct {
+	Name      string   `json:"name"`
+	Code      string   `json:"code"`
+	SortOrder int      `json:"sortOrder"`
+	Aliases   []string `json:"aliases"`
+}
+
+// Preserve schema-1 serialization while schema 2 includes explicit empty sets.
+func (s System) MarshalJSON() ([]byte, error) {
+	if s.Aliases == nil && s.ProviderMappings == nil {
+		return json.Marshal(struct {
+			Name            string   `json:"name"`
+			ManufacturerIDs []string `json:"manufacturerIds"`
+		}{s.Name, s.ManufacturerIDs})
+	}
+	return json.Marshal(struct {
+		Name             string            `json:"name"`
+		ManufacturerIDs  []string          `json:"manufacturerIds"`
+		Aliases          []string          `json:"aliases"`
+		ProviderMappings map[string]string `json:"providerMappings"`
+	}{s.Name, s.ManufacturerIDs, s.Aliases, s.ProviderMappings})
+}
+
 type Company struct {
 	Name    string   `json:"name"`
 	Aliases []string `json:"aliases"`
@@ -40,10 +70,12 @@ type Catalog struct {
 	Validation       Validation `json:"validation"`
 }
 type Registry struct {
-	Companies     map[string]Company `json:"companies"`
-	SchemaVersion int                `json:"schemaVersion"`
-	Systems       map[string]System  `json:"systems"`
-	Catalogs      map[string]Catalog `json:"catalogs"`
+	Regions       map[string]Region   `json:"regions,omitempty"`
+	Languages     map[string]Language `json:"languages,omitempty"`
+	Companies     map[string]Company  `json:"companies"`
+	SchemaVersion int                 `json:"schemaVersion"`
+	Systems       map[string]System   `json:"systems"`
+	Catalogs      map[string]Catalog  `json:"catalogs"`
 }
 
 var idPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
@@ -55,17 +87,17 @@ func label(s string) bool {
 // LoadSource assembles the fixed category files from one pinned source checkout.
 // Preserve raw JSON until Parse checks duplicate keys across the whole snapshot.
 func LoadSource(directory string) (*Registry, error) {
-	sections := map[string]json.RawMessage{"schemaVersion": json.RawMessage("1")}
+	sections := map[string]json.RawMessage{"schemaVersion": json.RawMessage("2")}
 	entries, err := os.ReadDir(directory)
 	if err != nil {
 		return nil, err
 	}
 	for _, entry := range entries {
-		if strings.EqualFold(filepath.Ext(entry.Name()), ".json") && entry.Name() != "systems.json" && entry.Name() != "companies.json" && entry.Name() != "catalogs.json" {
+		if strings.EqualFold(filepath.Ext(entry.Name()), ".json") && entry.Name() != "systems.json" && entry.Name() != "companies.json" && entry.Name() != "catalogs.json" && entry.Name() != "regions.json" && entry.Name() != "languages.json" {
 			return nil, fmt.Errorf("unknown definition file %q", entry.Name())
 		}
 	}
-	for _, name := range []string{"systems", "companies", "catalogs"} {
+	for _, name := range []string{"systems", "companies", "catalogs", "regions", "languages"} {
 		path := filepath.Join(directory, name+".json")
 		stat, err := os.Lstat(path)
 		if err != nil {
@@ -122,10 +154,23 @@ func Parse(b []byte) (*Registry, error) {
 		return nil, errors.New("trailing definitions data")
 	}
 	var raw map[string]json.RawMessage
-	if err := object(b, &raw, "schemaVersion", "systems", "catalogs", "companies"); err != nil {
+	if err := json.Unmarshal(b, &raw); err != nil {
 		return nil, err
 	}
-	for _, section := range []string{"systems", "catalogs", "companies"} {
+	var version int
+	if err := json.Unmarshal(raw["schemaVersion"], &version); err != nil {
+		return nil, err
+	}
+	keys := []string{"schemaVersion", "systems", "catalogs", "companies"}
+	sections := []string{"systems", "catalogs", "companies"}
+	if version == 2 {
+		keys = append(keys, "regions", "languages")
+		sections = append(sections, "regions", "languages")
+	}
+	if err := object(b, &raw, keys...); err != nil {
+		return nil, err
+	}
+	for _, section := range sections {
 		var entries map[string]json.RawMessage
 		if err := json.Unmarshal(raw[section], &entries); err != nil {
 			return nil, err
@@ -133,7 +178,19 @@ func Parse(b []byte) (*Registry, error) {
 		for _, entry := range entries {
 			var fields map[string]json.RawMessage
 			if section == "systems" {
-				if err := object(entry, &fields, "name", "manufacturerIds"); err != nil {
+				systemKeys := []string{"name", "manufacturerIds"}
+				if version == 2 {
+					systemKeys = append(systemKeys, "aliases", "providerMappings")
+				}
+				if err := object(entry, &fields, systemKeys...); err != nil {
+					return nil, err
+				}
+			} else if section == "regions" {
+				if err := object(entry, &fields, "name", "sortOrder", "aliases"); err != nil {
+					return nil, err
+				}
+			} else if section == "languages" {
+				if err := object(entry, &fields, "name", "code", "sortOrder", "aliases"); err != nil {
 					return nil, err
 				}
 			} else if section == "companies" {
@@ -219,8 +276,11 @@ func uniqueValue(d *json.Decoder, depth int) error {
 	return nil
 }
 func (r *Registry) Validate() error {
-	if r == nil || r.SchemaVersion != 1 || len(r.Companies) == 0 || len(r.Companies) > 10000 || len(r.Systems) == 0 || len(r.Systems) > 1000 || len(r.Catalogs) == 0 || len(r.Catalogs) > 1000 {
+	if r == nil || (r.SchemaVersion != 1 && r.SchemaVersion != 2) || len(r.Companies) == 0 || len(r.Companies) > 10000 || len(r.Systems) == 0 || len(r.Systems) > 1000 || len(r.Catalogs) == 0 || len(r.Catalogs) > 1000 {
 		return errors.New("unsupported or empty definitions")
+	}
+	if err := r.validateSeedData(); err != nil {
+		return err
 	}
 	companyNames := map[string]string{}
 	for id, c := range r.Companies {
@@ -283,6 +343,19 @@ func (r *Registry) Compatible(previous *Registry) error {
 	if previous == nil {
 		return nil
 	}
+	if previous.SchemaVersion > r.SchemaVersion {
+		return errors.New("reference schema downgrade")
+	}
+	for id := range previous.Regions {
+		if _, ok := r.Regions[id]; !ok {
+			return fmt.Errorf("region %q removed; explicit migration required", id)
+		}
+	}
+	for id := range previous.Languages {
+		if _, ok := r.Languages[id]; !ok {
+			return fmt.Errorf("language %q removed; explicit migration required", id)
+		}
+	}
 	for id := range previous.Companies {
 		if _, ok := r.Companies[id]; !ok {
 			return fmt.Errorf("company %q removed; explicit migration required", id)
@@ -291,6 +364,11 @@ func (r *Registry) Compatible(previous *Registry) error {
 	for id, old := range previous.Systems {
 		if _, ok := r.Systems[id]; !ok {
 			return fmt.Errorf("system %q removed; explicit migration required", id)
+		}
+		for provider, value := range old.ProviderMappings {
+			if r.Systems[id].ProviderMappings[provider] != value {
+				return fmt.Errorf("system %q provider mapping changed; explicit migration required", id)
+			}
 		}
 		before := slices.Clone(old.ManufacturerIDs)
 		after := slices.Clone(r.Systems[id].ManufacturerIDs)

@@ -1,0 +1,156 @@
+{
+  "da": {
+    "aliases": [
+      "Da",
+      "Dan"
+    ],
+    "code": "da",
+    "name": "Danish",
+    "sortOrder": 12
+  },
+  "de": {
+    "aliases": [
+      "De",
+      "Deu",
+      "Ger",
+      "G"
+    ],
+    "code": "de",
+    "name": "German",
+    "sortOrder": 4
+  },
+  "en": {
+    "aliases": [
+      "En",
+      "Eng",
+      "E"
+    ],
+    "code": "en",
+    "name": "English",
+    "sortOrder": 1
+  },
+  "es": {
+    "aliases": [
+      "Es",
+      "Esp",
+      "Spa",
+      "S"
+    ],
+    "code": "es",
+    "name": "Spanish",
+    "sortOrder": 5
+  },
+  "fi": {
+    "aliases": [
+      "Fi",
+      "Fin"
+    ],
+    "code": "fi",
+    "name": "Finnish",
+    "sortOrder": 14
+  },
+  "fr": {
+    "aliases": [
+      "Fr",
+      "Fra",
+      "F"
+    ],
+    "code": "fr",
+    "name": "French",
+    "sortOrder": 3
+  },
+  "it": {
+    "aliases": [
+      "It",
+      "Ita",
+      "I"
+    ],
+    "code": "it",
+    "name": "Italian",
+    "sortOrder": 6
+  },
+  "ja": {
+    "aliases": [
+      "Ja",
+      "Jpn",
+      "J"
+    ],
+    "code": "ja",
+    "name": "Japanese",
+    "sortOrder": 2
+  },
+  "ko": {
+    "aliases": [
+      "Ko",
+      "Kor"
+    ],
+    "code": "ko",
+    "name": "Korean",
+    "sortOrder": 9
+  },
+  "nl": {
+    "aliases": [
+      "Nl",
+      "Nld",
+      "Dut"
+    ],
+    "code": "nl",
+    "name": "Dutch",
+    "sortOrder": 7
+  },
+  "no": {
+    "aliases": [
+      "No",
+      "Nor"
+    ],
+    "code": "no",
+    "name": "Norwegian",
+    "sortOrder": 13
+  },
+  "pl": {
+    "aliases": [
+      "Pl",
+      "Pol"
+    ],
+    "code": "pl",
+    "name": "Polish",
+    "sortOrder": 16
+  },
+  "pt": {
+    "aliases": [
+      "Pt",
+      "Por"
+    ],
+    "code": "pt",
+    "name": "Portuguese",
+    "sortOrder": 8
+  },
+  "ru": {
+    "aliases": [
+      "Ru",
+      "Rus"
+    ],
+    "code": "ru",
+    "name": "Russian",
+    "sortOrder": 15
+  },
+  "sv": {
+    "aliases": [
+      "Sv",
+      "Swe"
+    ],
+    "code": "sv",
+    "name": "Swedish",
+    "sortOrder": 11
+  },
+  "zh": {
+    "aliases": [
+      "Zh",
+      "Zho",
+      "Chi"
+    ],
+    "code": "zh",
+    "name": "Chinese",
+    "sortOrder": 10
+  }
+}

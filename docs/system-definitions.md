@@ -1,4 +1,4 @@
-# Shared system, company, and catalog definitions
+# Shared reference definitions
 
 The tooling repository owns the editable source, split by category:
 
@@ -7,10 +7,12 @@ definitions/
   systems.json
   companies.json
   catalogs.json
+  regions.json
+  languages.json
 ```
 
 Each file is a dictionary, without a repeated ID inside each entry. The loader
-assembles all three files into one schema-versioned snapshot. Keys are
+assembles all five files into one schema-versioned snapshot. Keys are
 stable IDs; catalog `systemId` references our system ID, while
 `providerSystemId` selects the provider's distinct identifier. Only the complete
 PSX disc catalog is defined initially. Emulator configuration, BIOS requirements,
@@ -35,12 +37,14 @@ providers/representations, conflicting upstream mappings, and nonpositive count
 floors. Input size and nesting are bounded. JSON dictionaries serialize in sorted
 key order; no behavior depends on insertion order. Catalog IDs must equal
 `provider/systemId/representation`, which also determines the stable DAT path.
-The source loader requires all three files, rejects unexpected JSON categories,
+The source loader requires all five files, rejects unexpected JSON categories,
 and preserves duplicate keys until strict validation rather than silently losing
 them during assembly. Each file and the complete snapshot are size-bounded.
-The version-1 source format is owned by the loader; the generated snapshot carries
-`schemaVersion: 1`. Regions/languages can be added through a reviewed schema
-extension when their existing ROMD seeds are migrated. Files from different
+The source format is owned by the loader; the generated snapshot carries
+`schemaVersion: 2`. Schema-1 published snapshots remain readable and can be
+restored before upgrading; a downgrade is rejected. Older readers reject schema 2
+rather than accepting a partial definition set. Upgrade consumer binaries before
+expecting them to consume the new snapshot. Files from different
 published versions are never downloaded and mixed by consumers.
 CI validates the committed definition through tests; publication explicitly
 validates definitions before restoring or acquiring any source.
@@ -114,8 +118,39 @@ not change the relationship. Display names and unambiguous aliases can evolve.
 Company data is part of the same signed `reference-data.json` copy and verified index;
 it is never maintained separately in the data repository.
 
-Schema version 1 is now published as one signed reference-data snapshot.
+Schema version 1 was the first published signed reference-data snapshot.
+Schema version 2 expands its seed coverage.
 It prepares shared seed data and grouping identities; it does not yet
 replace ROMD's DB seeders, add a Fetch latest action, or implement grouping UI.
 Those consumers should preserve DB IDs/local edits and review changes against
 the last-applied shared version.
+
+## Complete ROMD seed migration (schema 2)
+
+The reviewed baseline is ROMD commit
+`a601c4e7da7d9e699a18237417f6d749bc0290c3`: `PlatformSeeder.cs`,
+`PlatformIds.cs`, and `SeedData/regions.json` / `languages.json`.
+The shared definitions preserve all 56 system short names, display names,
+manufacturer labels, 56 IGDB IDs, 20 system name aliases, 20 regions, and
+16 languages, including taxonomy sort orders and alias spelling. The seed-parity
+test compares every record against the frozen legacy layout in testdata.
+PSX uses ROMD's display name `PlayStation`; `Sony PlayStation` remains an alias.
+The Redump document header remains separately bound to `Sony - PlayStation`.
+
+Systems contain explicit `aliases` arrays and `providerMappings` dictionaries
+(provider ID to string identifier). Existing provider mappings cannot be removed
+or reassigned during ordinary publication. Empty collections are explicit.
+Regions use stable descriptive keys, such as `united-kingdom`, with `name`,
+`sortOrder`, and `aliases`. Language keys are their existing codes; each entry
+preserves `code`, `name`, `sortOrder`, and `aliases`. These keys are shared-data
+identities, not ROMD database primary keys.
+
+Names/aliases must resolve unambiguously within each category. System aliases
+also cannot shadow another system's stable ID. Language aliases may match their
+own code (the original seed has `En` for `en`); duplicate aliases within an entry
+and collisions with another entry are rejected. Companies retain their stricter
+name/alias rule. No taxonomy ID can disappear through ordinary publication.
+
+This registry describes systems even when no DAT is published for them. The only
+real catalog definition is still PSX; expanding reference seeds does not expand
+upstream acquisition or authorize public mirroring.

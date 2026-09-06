@@ -1,0 +1,759 @@
+{
+  "systems": [
+    {
+      "shortName": "nes",
+      "name": "Nintendo Entertainment System",
+      "manufacturer": "Nintendo",
+      "igdbId": 18,
+      "aliases": [
+        "NES",
+        "Famicom",
+        "Family Computer"
+      ]
+    },
+    {
+      "shortName": "snes",
+      "name": "Super Nintendo Entertainment System",
+      "manufacturer": "Nintendo",
+      "igdbId": 19,
+      "aliases": [
+        "SNES",
+        "Super Famicom",
+        "Super Nintendo"
+      ]
+    },
+    {
+      "shortName": "n64",
+      "name": "Nintendo 64",
+      "manufacturer": "Nintendo",
+      "igdbId": 4,
+      "aliases": [
+        "N64"
+      ]
+    },
+    {
+      "shortName": "gc",
+      "name": "Nintendo GameCube",
+      "manufacturer": "Nintendo",
+      "igdbId": 21,
+      "aliases": [
+        "GameCube"
+      ]
+    },
+    {
+      "shortName": "wii",
+      "name": "Wii",
+      "manufacturer": "Nintendo",
+      "igdbId": 5,
+      "aliases": []
+    },
+    {
+      "shortName": "wiiu",
+      "name": "Wii U",
+      "manufacturer": "Nintendo",
+      "igdbId": 41,
+      "aliases": []
+    },
+    {
+      "shortName": "switch",
+      "name": "Nintendo Switch",
+      "manufacturer": "Nintendo",
+      "igdbId": 130,
+      "aliases": []
+    },
+    {
+      "shortName": "gb",
+      "name": "Game Boy",
+      "manufacturer": "Nintendo",
+      "igdbId": 33,
+      "aliases": []
+    },
+    {
+      "shortName": "gbc",
+      "name": "Game Boy Color",
+      "manufacturer": "Nintendo",
+      "igdbId": 22,
+      "aliases": [
+        "GBC"
+      ]
+    },
+    {
+      "shortName": "gba",
+      "name": "Game Boy Advance",
+      "manufacturer": "Nintendo",
+      "igdbId": 24,
+      "aliases": [
+        "GBA"
+      ]
+    },
+    {
+      "shortName": "nds",
+      "name": "Nintendo DS",
+      "manufacturer": "Nintendo",
+      "igdbId": 20,
+      "aliases": [
+        "NDS"
+      ]
+    },
+    {
+      "shortName": "3ds",
+      "name": "Nintendo 3DS",
+      "manufacturer": "Nintendo",
+      "igdbId": 37,
+      "aliases": []
+    },
+    {
+      "shortName": "vb",
+      "name": "Virtual Boy",
+      "manufacturer": "Nintendo",
+      "igdbId": 87,
+      "aliases": []
+    },
+    {
+      "shortName": "sms",
+      "name": "Sega Master System",
+      "manufacturer": "Sega",
+      "igdbId": 64,
+      "aliases": []
+    },
+    {
+      "shortName": "genesis",
+      "name": "Sega Genesis",
+      "manufacturer": "Sega",
+      "igdbId": 29,
+      "aliases": [
+        "Mega Drive",
+        "Sega Mega Drive"
+      ]
+    },
+    {
+      "shortName": "segacd",
+      "name": "Sega CD",
+      "manufacturer": "Sega",
+      "igdbId": 78,
+      "aliases": []
+    },
+    {
+      "shortName": "32x",
+      "name": "Sega 32X",
+      "manufacturer": "Sega",
+      "igdbId": 30,
+      "aliases": []
+    },
+    {
+      "shortName": "saturn",
+      "name": "Sega Saturn",
+      "manufacturer": "Sega",
+      "igdbId": 32,
+      "aliases": []
+    },
+    {
+      "shortName": "dc",
+      "name": "Sega Dreamcast",
+      "manufacturer": "Sega",
+      "igdbId": 23,
+      "aliases": []
+    },
+    {
+      "shortName": "gg",
+      "name": "Sega Game Gear",
+      "manufacturer": "Sega",
+      "igdbId": 35,
+      "aliases": []
+    },
+    {
+      "shortName": "psx",
+      "name": "PlayStation",
+      "manufacturer": "Sony",
+      "igdbId": 7,
+      "aliases": [
+        "PSX",
+        "PS1",
+        "Sony PlayStation"
+      ]
+    },
+    {
+      "shortName": "ps2",
+      "name": "PlayStation 2",
+      "manufacturer": "Sony",
+      "igdbId": 8,
+      "aliases": [
+        "PS2"
+      ]
+    },
+    {
+      "shortName": "ps3",
+      "name": "PlayStation 3",
+      "manufacturer": "Sony",
+      "igdbId": 9,
+      "aliases": [
+        "PS3"
+      ]
+    },
+    {
+      "shortName": "ps4",
+      "name": "PlayStation 4",
+      "manufacturer": "Sony",
+      "igdbId": 48,
+      "aliases": []
+    },
+    {
+      "shortName": "ps5",
+      "name": "PlayStation 5",
+      "manufacturer": "Sony",
+      "igdbId": 167,
+      "aliases": []
+    },
+    {
+      "shortName": "psp",
+      "name": "PlayStation Portable",
+      "manufacturer": "Sony",
+      "igdbId": 38,
+      "aliases": [
+        "PSP"
+      ]
+    },
+    {
+      "shortName": "vita",
+      "name": "PlayStation Vita",
+      "manufacturer": "Sony",
+      "igdbId": 46,
+      "aliases": []
+    },
+    {
+      "shortName": "xbox",
+      "name": "Xbox",
+      "manufacturer": "Microsoft",
+      "igdbId": 11,
+      "aliases": []
+    },
+    {
+      "shortName": "x360",
+      "name": "Xbox 360",
+      "manufacturer": "Microsoft",
+      "igdbId": 12,
+      "aliases": []
+    },
+    {
+      "shortName": "xone",
+      "name": "Xbox One",
+      "manufacturer": "Microsoft",
+      "igdbId": 49,
+      "aliases": []
+    },
+    {
+      "shortName": "xsx",
+      "name": "Xbox Series X|S",
+      "manufacturer": "Microsoft",
+      "igdbId": 169,
+      "aliases": []
+    },
+    {
+      "shortName": "2600",
+      "name": "Atari 2600",
+      "manufacturer": "Atari",
+      "igdbId": 59,
+      "aliases": []
+    },
+    {
+      "shortName": "5200",
+      "name": "Atari 5200",
+      "manufacturer": "Atari",
+      "igdbId": 66,
+      "aliases": []
+    },
+    {
+      "shortName": "7800",
+      "name": "Atari 7800",
+      "manufacturer": "Atari",
+      "igdbId": 60,
+      "aliases": []
+    },
+    {
+      "shortName": "jaguar",
+      "name": "Atari Jaguar",
+      "manufacturer": "Atari",
+      "igdbId": 62,
+      "aliases": []
+    },
+    {
+      "shortName": "lynx",
+      "name": "Atari Lynx",
+      "manufacturer": "Atari",
+      "igdbId": 61,
+      "aliases": []
+    },
+    {
+      "shortName": "tg16",
+      "name": "TurboGrafx-16",
+      "manufacturer": "NEC",
+      "igdbId": 86,
+      "aliases": [
+        "PC Engine"
+      ]
+    },
+    {
+      "shortName": "tgcd",
+      "name": "TurboGrafx-CD",
+      "manufacturer": "NEC",
+      "igdbId": 150,
+      "aliases": []
+    },
+    {
+      "shortName": "sgx",
+      "name": "PC Engine SuperGrafx",
+      "manufacturer": "NEC",
+      "igdbId": 128,
+      "aliases": []
+    },
+    {
+      "shortName": "neogeo",
+      "name": "Neo Geo",
+      "manufacturer": "SNK",
+      "igdbId": 80,
+      "aliases": []
+    },
+    {
+      "shortName": "neogeocd",
+      "name": "Neo Geo CD",
+      "manufacturer": "SNK",
+      "igdbId": 136,
+      "aliases": []
+    },
+    {
+      "shortName": "ngp",
+      "name": "Neo Geo Pocket",
+      "manufacturer": "SNK",
+      "igdbId": 119,
+      "aliases": []
+    },
+    {
+      "shortName": "ngpc",
+      "name": "Neo Geo Pocket Color",
+      "manufacturer": "SNK",
+      "igdbId": 120,
+      "aliases": []
+    },
+    {
+      "shortName": "3do",
+      "name": "3DO Interactive Multiplayer",
+      "manufacturer": "Panasonic",
+      "igdbId": 50,
+      "aliases": []
+    },
+    {
+      "shortName": "coleco",
+      "name": "ColecoVision",
+      "manufacturer": "Coleco",
+      "igdbId": 68,
+      "aliases": []
+    },
+    {
+      "shortName": "intv",
+      "name": "Intellivision",
+      "manufacturer": "Mattel",
+      "igdbId": 67,
+      "aliases": []
+    },
+    {
+      "shortName": "cdi",
+      "name": "Philips CD-i",
+      "manufacturer": "Philips",
+      "igdbId": 117,
+      "aliases": []
+    },
+    {
+      "shortName": "ws",
+      "name": "WonderSwan",
+      "manufacturer": "Bandai",
+      "igdbId": 57,
+      "aliases": []
+    },
+    {
+      "shortName": "wsc",
+      "name": "WonderSwan Color",
+      "manufacturer": "Bandai",
+      "igdbId": 123,
+      "aliases": []
+    },
+    {
+      "shortName": "c64",
+      "name": "Commodore 64",
+      "manufacturer": "Commodore",
+      "igdbId": 15,
+      "aliases": []
+    },
+    {
+      "shortName": "amiga",
+      "name": "Amiga",
+      "manufacturer": "Commodore",
+      "igdbId": 16,
+      "aliases": []
+    },
+    {
+      "shortName": "atarist",
+      "name": "Atari ST",
+      "manufacturer": "Atari",
+      "igdbId": 63,
+      "aliases": []
+    },
+    {
+      "shortName": "msx",
+      "name": "MSX",
+      "manufacturer": "Microsoft",
+      "igdbId": 27,
+      "aliases": []
+    },
+    {
+      "shortName": "zxs",
+      "name": "ZX Spectrum",
+      "manufacturer": "Sinclair",
+      "igdbId": 26,
+      "aliases": []
+    },
+    {
+      "shortName": "dos",
+      "name": "DOS",
+      "manufacturer": "IBM",
+      "igdbId": 13,
+      "aliases": []
+    },
+    {
+      "shortName": "arcade",
+      "name": "Arcade",
+      "manufacturer": null,
+      "igdbId": 52,
+      "aliases": []
+    }
+  ],
+  "regions": [
+    {
+      "name": "World",
+      "sortOrder": 1,
+      "aliases": [
+        "W",
+        "WLD"
+      ]
+    },
+    {
+      "name": "USA",
+      "sortOrder": 10,
+      "aliases": [
+        "US",
+        "U",
+        "America",
+        "United States",
+        "NTSC-U"
+      ]
+    },
+    {
+      "name": "Europe",
+      "sortOrder": 20,
+      "aliases": [
+        "EU",
+        "EUR",
+        "PAL"
+      ]
+    },
+    {
+      "name": "Japan",
+      "sortOrder": 30,
+      "aliases": [
+        "JP",
+        "J",
+        "JPN",
+        "NTSC-J"
+      ]
+    },
+    {
+      "name": "Germany",
+      "sortOrder": 40,
+      "aliases": [
+        "DE",
+        "D",
+        "GER"
+      ]
+    },
+    {
+      "name": "France",
+      "sortOrder": 41,
+      "aliases": [
+        "FR",
+        "FRA"
+      ]
+    },
+    {
+      "name": "Spain",
+      "sortOrder": 42,
+      "aliases": [
+        "ES",
+        "SPA"
+      ]
+    },
+    {
+      "name": "Italy",
+      "sortOrder": 43,
+      "aliases": [
+        "IT",
+        "ITA"
+      ]
+    },
+    {
+      "name": "United Kingdom",
+      "sortOrder": 44,
+      "aliases": [
+        "UK",
+        "GB",
+        "GBR",
+        "Great Britain"
+      ]
+    },
+    {
+      "name": "Australia",
+      "sortOrder": 45,
+      "aliases": [
+        "AU",
+        "AUS"
+      ]
+    },
+    {
+      "name": "Canada",
+      "sortOrder": 46,
+      "aliases": [
+        "CA",
+        "CAN"
+      ]
+    },
+    {
+      "name": "Korea",
+      "sortOrder": 47,
+      "aliases": [
+        "KR",
+        "K",
+        "KOR",
+        "South Korea"
+      ]
+    },
+    {
+      "name": "China",
+      "sortOrder": 48,
+      "aliases": [
+        "CN",
+        "CHN",
+        "PRC"
+      ]
+    },
+    {
+      "name": "Brazil",
+      "sortOrder": 49,
+      "aliases": [
+        "BR",
+        "BRA"
+      ]
+    },
+    {
+      "name": "Sweden",
+      "sortOrder": 50,
+      "aliases": [
+        "SE",
+        "SWE"
+      ]
+    },
+    {
+      "name": "Netherlands",
+      "sortOrder": 51,
+      "aliases": [
+        "NL",
+        "NLD",
+        "Holland"
+      ]
+    },
+    {
+      "name": "Asia",
+      "sortOrder": 52,
+      "aliases": [
+        "AS"
+      ]
+    },
+    {
+      "name": "Taiwan",
+      "sortOrder": 53,
+      "aliases": [
+        "TW",
+        "TWN"
+      ]
+    },
+    {
+      "name": "Hong Kong",
+      "sortOrder": 54,
+      "aliases": [
+        "HK",
+        "HKG"
+      ]
+    },
+    {
+      "name": "Russia",
+      "sortOrder": 55,
+      "aliases": [
+        "RU",
+        "RUS"
+      ]
+    }
+  ],
+  "languages": [
+    {
+      "name": "English",
+      "code": "en",
+      "sortOrder": 1,
+      "aliases": [
+        "En",
+        "Eng",
+        "E"
+      ]
+    },
+    {
+      "name": "Japanese",
+      "code": "ja",
+      "sortOrder": 2,
+      "aliases": [
+        "Ja",
+        "Jpn",
+        "J"
+      ]
+    },
+    {
+      "name": "French",
+      "code": "fr",
+      "sortOrder": 3,
+      "aliases": [
+        "Fr",
+        "Fra",
+        "F"
+      ]
+    },
+    {
+      "name": "German",
+      "code": "de",
+      "sortOrder": 4,
+      "aliases": [
+        "De",
+        "Deu",
+        "Ger",
+        "G"
+      ]
+    },
+    {
+      "name": "Spanish",
+      "code": "es",
+      "sortOrder": 5,
+      "aliases": [
+        "Es",
+        "Esp",
+        "Spa",
+        "S"
+      ]
+    },
+    {
+      "name": "Italian",
+      "code": "it",
+      "sortOrder": 6,
+      "aliases": [
+        "It",
+        "Ita",
+        "I"
+      ]
+    },
+    {
+      "name": "Dutch",
+      "code": "nl",
+      "sortOrder": 7,
+      "aliases": [
+        "Nl",
+        "Nld",
+        "Dut"
+      ]
+    },
+    {
+      "name": "Portuguese",
+      "code": "pt",
+      "sortOrder": 8,
+      "aliases": [
+        "Pt",
+        "Por"
+      ]
+    },
+    {
+      "name": "Korean",
+      "code": "ko",
+      "sortOrder": 9,
+      "aliases": [
+        "Ko",
+        "Kor"
+      ]
+    },
+    {
+      "name": "Chinese",
+      "code": "zh",
+      "sortOrder": 10,
+      "aliases": [
+        "Zh",
+        "Zho",
+        "Chi"
+      ]
+    },
+    {
+      "name": "Swedish",
+      "code": "sv",
+      "sortOrder": 11,
+      "aliases": [
+        "Sv",
+        "Swe"
+      ]
+    },
+    {
+      "name": "Danish",
+      "code": "da",
+      "sortOrder": 12,
+      "aliases": [
+        "Da",
+        "Dan"
+      ]
+    },
+    {
+      "name": "Norwegian",
+      "code": "no",
+      "sortOrder": 13,
+      "aliases": [
+        "No",
+        "Nor"
+      ]
+    },
+    {
+      "name": "Finnish",
+      "code": "fi",
+      "sortOrder": 14,
+      "aliases": [
+        "Fi",
+        "Fin"
+      ]
+    },
+    {
+      "name": "Russian",
+      "code": "ru",
+      "sortOrder": 15,
+      "aliases": [
+        "Ru",
+        "Rus"
+      ]
+    },
+    {
+      "name": "Polish",
+      "code": "pl",
+      "sortOrder": 16,
+      "aliases": [
+        "Pl",
+        "Pol"
+      ]
+    }
+  ]
+}

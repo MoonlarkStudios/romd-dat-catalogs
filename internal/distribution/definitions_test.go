@@ -52,6 +52,9 @@ func TestSignedSharedDefinitions(t *testing.T) {
 	if verified.Definitions.Companies["sony"].Name != "Sony" || len(verified.Definitions.Companies) != 15 || verified.Definitions.Systems["psx"].ManufacturerIDs[0] != "sony" {
 		t.Fatal("company grouping missing from signed index")
 	}
+	if verified.Definitions.SchemaVersion != 2 || len(verified.Definitions.Systems) != 56 || len(verified.Definitions.Regions) != 20 || len(verified.Definitions.Languages) != 16 || verified.Definitions.Systems["psx"].ProviderMappings["igdb"] != "7" {
+		t.Fatal("complete reference seeds missing from authenticated index")
+	}
 	expected, _ := json.Marshal(index.Definitions)
 	if !bytes.Equal(expected, read(t, filepath.Join(out, "site/reference-data.json"))) {
 		t.Fatal("alias differs from signed index definitions")
@@ -92,8 +95,9 @@ func TestSignedSharedDefinitions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if prior.Companies["sony"].Name != "Sony" || prior.Systems["psx"].ManufacturerIDs[0] != "sony" {
-		t.Fatal("company identity lost on restore")
+	restoredDefinitions, err := json.Marshal(prior)
+	if err != nil || !bytes.Equal(restoredDefinitions, expected) {
+		t.Fatal("complete reference data lost on restore", err)
 	}
 	if err := registry.Compatible(prior); err != nil {
 		t.Fatal(err)

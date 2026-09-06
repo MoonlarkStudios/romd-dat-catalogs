@@ -51,7 +51,7 @@ func TestPausedPSX(t *testing.T) {
 			}
 			var out bytes.Buffer
 			registryPath := t.TempDir()
-			for _, name := range []string{"systems.json", "companies.json", "catalogs.json"} {
+			for _, name := range []string{"systems.json", "companies.json", "catalogs.json", "regions.json", "languages.json"} {
 				raw, err := os.ReadFile(filepath.Join("../../definitions", name))
 				if err != nil {
 					t.Fatal(err)
@@ -130,7 +130,7 @@ func TestCatalogSelectionBeforeNetwork(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(bad, "systems.json"), []byte(`{"psx":{},"psx":{}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"companies.json", "catalogs.json"} {
+	for _, name := range []string{"companies.json", "catalogs.json", "regions.json", "languages.json"} {
 		raw, err := os.ReadFile(filepath.Join("../../definitions", name))
 		if err != nil {
 			t.Fatal(err)
