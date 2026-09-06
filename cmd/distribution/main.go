@@ -18,7 +18,7 @@ import (
 
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("commands: init, rotate, stage, restore, verify-assets, candidate, export-data, validate-definitions")
+		return errors.New("commands: init, rotate, stage, restore, verify-assets, candidate, reference-data, export-data, validate-definitions")
 	}
 	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	switch args[0] {
@@ -143,7 +143,7 @@ func run(args []string) error {
 			return errors.New("deployed publication version does not match expected version")
 		}
 		return distribution.RestorePublication(index, *state, nil)
-	case "candidate":
+	case "candidate", "reference-data":
 		root := fs.String("root", "trust/1.root.json", "independently pinned public root")
 		site := fs.String("site", "", "HTTPS publisher site")
 		bundle := fs.String("bundle", "", "local signed Stage bundle; exclusive with --site")
@@ -154,8 +154,14 @@ func run(args []string) error {
 		if e := fs.Parse(args[1:]); e != nil {
 			return e
 		}
-		if fs.NArg() != 0 || *cache == "" || *id == "" || *name == "" || *out == "" || (*site == "") == (*bundle == "") {
-			return errors.New("candidate requires root, cache, catalog, name, out, and exactly one of site/bundle")
+		if fs.NArg() != 0 || *cache == "" || *out == "" || (*site == "") == (*bundle == "") {
+			return errors.New("reader requires root, cache, out, and exactly one of site/bundle")
+		}
+		if args[0] == "candidate" && (*id == "" || *name == "") {
+			return errors.New("candidate requires catalog and name")
+		}
+		if args[0] == "reference-data" && (*id != "" || *name != "") {
+			return errors.New("reference-data does not select a DAT")
 		}
 		var client *http.Client
 		if *bundle != "" {
@@ -183,6 +189,12 @@ func run(args []string) error {
 		index, e := distribution.RefreshIndex(rootBytes, strings.TrimRight(*site, "/"), *cache, client)
 		if e != nil {
 			return e
+		}
+		if args[0] == "reference-data" {
+			if index.Definitions == nil {
+				return errors.New("publisher has no shared reference data")
+			}
+			return writeReferenceData(*out, index)
 		}
 		candidate, document, e := distribution.ReadCandidate(index, *id, *name, client)
 		if e != nil {
@@ -232,4 +244,34 @@ func main() {
 		fmt.Fprintln(os.Stderr, e)
 		os.Exit(1)
 	}
+}
+
+// The authenticated index is authoritative for both definitions and available
+// catalogs. Never fetch the unauthenticated Pages alias or download a DAT here.
+func writeReferenceData(out string, index distribution.Index) error {
+	reference, err := json.Marshal(index.Definitions)
+	if err != nil {
+		return err
+	}
+	publication, err := json.Marshal(index)
+	if err != nil {
+		return err
+	}
+	if err := os.Mkdir(out, 0700); err != nil {
+		return err
+	}
+	complete := false
+	defer func() {
+		if !complete {
+			os.RemoveAll(out)
+		}
+	}()
+	if err := os.WriteFile(filepath.Join(out, "reference-data.json"), reference, 0600); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(out, "catalog.json"), publication, 0600); err != nil {
+		return err
+	}
+	complete = true
+	return nil
 }

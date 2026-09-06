@@ -88,7 +88,7 @@ must not automatically rewrite those identities.
 This change supplies the shared contract and signed copy. It does not yet change
 ROMD's system seeding/enrollment UI or its existing PSX subscription selection.
 The live data workflow pins tooling revision
-`19f983c0e58d62e7f97ba8bf860c6d1a8c289fde`. The published snapshot is available at
+`249ac9dd0bb25fd9ba2faf9eb9795ab963a16226`. The published snapshot is available at
 https://moonlarkstudios.github.io/romd-dat-data/reference-data.json; verify its TUF
 target before consuming it. Future upgrades must update both caller pins after
 review. Public PSX mirroring still requires upstream redistribution qualification.
@@ -154,3 +154,22 @@ name/alias rule. No taxonomy ID can disappear through ordinary publication.
 This registry describes systems even when no DAT is published for them. The only
 real catalog definition is still PSX; expanding reference seeds does not expand
 upstream acquisition or authorize public mirroring.
+
+### Read verified reference data without downloading DATs
+
+```sh
+./bin/distribution reference-data --root trust/1.root.json \
+  --site https://moonlarkstudios.github.io/romd-dat-data \
+  --cache .reference-cache --out verified-reference
+```
+
+The new output directory contains `reference-data.json` and `catalog.json`.
+The former is exactly the definitions embedded in the latter's verified signed
+index. The index carries its publication version and actual catalog availability;
+reference-data hashes identify meaningful seed changes independently of routine
+metadata refreshes. Keep the trust root independently pinned and retain the cache.
+This command shares the candidate reader's cache lock and verification rules,
+rejects a publication without reference data, and never fetches a DAT or the
+unsigned Pages alias. It does not overwrite an existing output directory.
+An operator-supplied `--bundle` can replace `--site` for isolated signed demos.
+ROMD must still validate/apply changes against its own local state.
