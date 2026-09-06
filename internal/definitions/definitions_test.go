@@ -29,13 +29,13 @@ func TestStrictDefinitions(t *testing.T) {
 		t.Fatal("lost system identity")
 	}
 	for name, b := range map[string][]byte{
-		"duplicate top":       bytes.Replace(good, []byte(`"schemaVersion": 1`), []byte(`"schemaVersion": 1, "schemaVersion": 1`), 1),
-		"duplicate escaped":   bytes.Replace(good, []byte(`"name": "Sony PlayStation"`), []byte(`"name":"Sony PlayStation", "\u006eame":"other"`), 1),
+		"duplicate top":       bytes.Replace(good, []byte(`"schemaVersion": 2`), []byte(`"schemaVersion": 2, "schemaVersion": 2`), 1),
+		"duplicate escaped":   bytes.Replace(good, []byte(`"name": "PlayStation"`), []byte(`"name":"PlayStation", "\u006eame":"other"`), 1),
 		"duplicate system":    bytes.Replace(good, []byte(`"psx": {`), []byte(`"psx": {}, "psx": {`), 1),
 		"unknown":             bytes.Replace(good, []byte(`"name":`), []byte(`"extra":true,"name":`), 1),
 		"case alias":          bytes.Replace(good, []byte(`"name":`), []byte(`"Name":`), 1),
 		"missing":             bytes.Replace(good, []byte(`"provider": "redump",`), nil, 1),
-		"unsupported version": bytes.Replace(good, []byte(`"schemaVersion": 1`), []byte(`"schemaVersion": 2`), 1),
+		"unsupported version": bytes.Replace(good, []byte(`"schemaVersion": 2`), []byte(`"schemaVersion": 3`), 1),
 		"fraction":            bytes.Replace(good, []byte(`10000`), []byte(`1.5`), 1),
 		"null limits":         bytes.Replace(good, []byte(`10000`), []byte(`null`), 1),
 		"unknown limit":       bytes.Replace(good, []byte(`"minimumGames"`), []byte(`"minGames"`), 1),
@@ -44,6 +44,9 @@ func TestStrictDefinitions(t *testing.T) {
 		"oversize": []byte(strings.Repeat(" ", MaxBytes+1)),
 	} {
 		t.Run(name, func(t *testing.T) {
+			if bytes.Equal(b, good) {
+				t.Fatal("fixture mutation did not apply")
+			}
 			if _, e := Parse(b); e == nil {
 				t.Fatal("accepted bad definitions")
 			}
@@ -86,7 +89,7 @@ func TestValidationAndCompatibility(t *testing.T) {
 		},
 		"wrong path": func(r *Registry) { r.Catalogs["redump/other/discs"] = r.Catalogs["redump/psx/discs"] },
 		"conflicting upstream": func(r *Registry) {
-			r.Systems["other"] = System{Name: "Other", ManufacturerIDs: []string{}}
+			r.Systems["other"] = System{Name: "Other", ManufacturerIDs: []string{}, Aliases: []string{}, ProviderMappings: map[string]string{}}
 			c := r.Catalogs["redump/psx/discs"]
 			c.SystemID = "other"
 			r.Catalogs["redump/other/discs"] = c
@@ -113,7 +116,9 @@ func TestValidationAndCompatibility(t *testing.T) {
 	c.ProviderSystemID = "psx"
 	c.Validation.MinimumGames++
 	next.Catalogs["redump/psx/discs"] = c
-	next.Systems["psx"] = System{Name: "PlayStation", ManufacturerIDs: []string{"sony"}}
+	system := next.Systems["psx"]
+	system.Name = "PlayStation revised label"
+	next.Systems["psx"] = system
 	if e := next.Compatible(old); e != nil {
 		t.Fatal("reviewed label/floor edits should be allowed", e)
 	}
@@ -124,10 +129,12 @@ func TestValidationAndCompatibility(t *testing.T) {
 }
 func TestDeterministicSerialization(t *testing.T) {
 	a, _ := Parse(fixture(t))
-	a.Systems["other"] = System{Name: "Other", ManufacturerIDs: []string{}}
-	b := &Registry{Companies: a.Companies, SchemaVersion: 1, Systems: map[string]System{}, Catalogs: map[string]Catalog{}}
+	a.Systems["other"] = System{Name: "Other", ManufacturerIDs: []string{}, Aliases: []string{}, ProviderMappings: map[string]string{}}
+	b := &Registry{Regions: a.Regions, Languages: a.Languages, Companies: a.Companies, SchemaVersion: a.SchemaVersion, Systems: map[string]System{}, Catalogs: map[string]Catalog{}}
 	b.Systems["other"] = a.Systems["other"]
-	b.Systems["psx"] = a.Systems["psx"]
+	for id, system := range a.Systems {
+		b.Systems[id] = system
+	}
 	b.Catalogs["redump/psx/discs"] = a.Catalogs["redump/psx/discs"]
 	x, _ := json.Marshal(a)
 	y, _ := json.Marshal(b)
