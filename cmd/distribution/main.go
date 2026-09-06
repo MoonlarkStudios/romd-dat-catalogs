@@ -95,6 +95,8 @@ func run(args []string) error {
 		cache := fs.String("cache", ".client-cache", "persistent TUF client cache")
 		state := fs.String("state", "output", "new publisher state directory")
 		expected := fs.Int64("expected-version", 0, "require an exact deployed metadata version")
+		bootstrap := fs.Bool("bootstrap", false, "new independent site only; require destination HTTP 404")
+		migration := fs.String("migration-site", "", "old signed site, only while destination does not exist")
 		if e := fs.Parse(args[1:]); e != nil {
 			return e
 		}
@@ -105,7 +107,14 @@ func run(args []string) error {
 		if e != nil {
 			return e
 		}
-		index, e := distribution.RefreshIndex(b, strings.TrimRight(*site, "/"), *cache, nil)
+		origin, e := distribution.RestoreOrigin(*site, *migration, *bootstrap, nil)
+		if e != nil {
+			return e
+		}
+		if origin == "" {
+			return nil
+		} // Explicit first deployment; publisher initializes local state.
+		index, e := distribution.RefreshIndex(b, strings.TrimRight(origin, "/"), *cache, nil)
 		if e != nil {
 			return e
 		}

@@ -17,7 +17,7 @@ run = "go test -race -timeout=60s ./..."
 
 [tasks.lint]
 description = "Check Go formatting and vet"
-run = ["test -z \"$(gofmt -l cmd internal)\"", "go vet ./...", "actionlint"]
+run = ["test -z \"$(gofmt -l cmd internal)\"", "go vet ./...", "actionlint", "actionlint templates/data-repository/.github/workflows/publish.yml"]
 
 [tasks.check]
 description = "Run all development checks"

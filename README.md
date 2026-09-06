@@ -11,7 +11,8 @@ belongs in ROMD's library layer.
 The local publisher still emits explicitly unsigned intermediate state. The
 distribution command wraps it with TUF-authenticated catalog/feed targets for
 GitHub Pages. The pending workflow stores complete uncompressed DATs in a
-separate public data repository and signs full-commit raw URLs; routine Releases
+separate public data repository and signs full-commit raw URLs. That repository
+also hosts Pages/RSS, calling a pinned reusable workflow from this tooling repo; routine Releases
 and recovery archives are no longer the storage model. The [Redump acquisition
 library](docs/redump-adapter.md) has a gated PSX workflow path. No
 public upstream DAT mirrors are enabled. An operator-driven [candidate reader](docs/romd-candidate.md)
