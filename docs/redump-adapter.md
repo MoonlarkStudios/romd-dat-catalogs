@@ -51,12 +51,17 @@ results; the existing publisher exposes its generic acquisition-failure code.
 
 ## Before live enablement
 
-Establish upstream transport and redistribution conditions; qualify full-source
-coverage and capacity; use the [source-state scheduler](source-state.md) for
-retry deadlines and registry bindings; and integrate review of suspicious changes.
-Optional remote custody and explicit interrupted-run recovery are implemented
-but have not been deployed. Each process must share
-one adapter per provider.
+Establish upstream transport and redistribution conditions, then qualify coverage
+and capacity for the first explicit platform. Connect that candidate to ROMD
+review before expanding source coverage. See the [qualification follow-up](upstream-qualification.md)
+for the current gates and Fresh1G1R takeaways.
+
+The existing [source-state scheduler](source-state.md) can preserve retry
+deadlines and registry bindings. Optional remote custody and interrupted-run
+recovery are implemented but have not been deployed; their deployment or expansion
+is not a prerequisite for the first operator-reviewed slice. Respect upstream
+retry deadlines when manually retrying. Each process must share one adapter per
+provider.
 A new process using the adapter alone does not inherit its in-memory cooldown.
 The scheduler persists admission separately; its integration and recovery
 boundaries are documented in the linked guide.

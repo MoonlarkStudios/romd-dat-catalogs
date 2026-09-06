@@ -187,3 +187,87 @@ not an implicit transport downgrade. Public mirroring still needs established
 redistribution conditions. Neither unresolved item justifies adding more remote
 scheduling infrastructure. Complete public PSX disc-document counts do not prove
 BIOS coverage, restricted catalogs, all Redump systems, or No-Intro coverage.
+
+
+## Follow-up after ROMD review acceptance (2026-09-06 UTC)
+
+ROMD [PR #209](https://github.com/JackSkylark/romd/pull/209) is merged. The user
+accepted the local Docker review demo. Large-diff browsing is tracked separately
+in [ROMD #210](https://github.com/JackSkylark/romd/issues/210); it does not block
+qualification of the first publisher candidate. Manual reviewed replacement is
+implemented; saved subscriptions and publisher-to-ROMD fetching remain pending.
+
+A fresh bounded network check returned HTTP 200 for Redump's homepage and
+download listing. HTTPS port 443 again refused the connection from this host.
+The public companion timestamp returned HTTP 200; this is availability evidence,
+not a fresh cryptographic verification of the publication. No DAT was downloaded
+or publicly published in this follow-up.
+
+### Reuse evidence: correct the earlier search gap
+
+Search now exposes an indexed version of the official
+[Redump overview](https://wiki.redump.org/index.php?title=Redump.org) answering
+whether Redump owns contributed database content. It describes the metadata as
+public information available for reuse by individuals and organizations. This
+is supporting evidence missed by the earlier limited review, not evidence that
+Redump forbids redistribution. The indexed page reports modification on
+2025-12-28. Direct retrieval here failed: HTTP returned 404 and the web fetch of
+HTTPS returned 502. Verify a current accessible copy before treating this as
+settled operational policy. It does not establish a supported HTTPS acquisition
+endpoint, polling rate, or restricted-catalog access. The homepage links to the
+wiki and identifies `admin@redump.org` as a contact; no message was sent.
+
+The accessible [No-Intro terms](https://datomatic.no-intro.org/stuff/terms.txt)
+remain insufficient to establish the proposed mirror conditions. Do not apply
+Redump's metadata statement to No-Intro.
+
+### Fresh1G1R technical takeaways, rechecked
+
+The GitHub API still resolves Fresh1G1R HEAD to
+[22dadc6](https://github.com/UnluckyForSome/Fresh1G1R/tree/22dadc6c8ef9b9da7d6f27eb9fa26533335f65b4).
+Reading the workflow and acquisition functions confirms:
+
+- Daily and manual CI are sufficient triggers for the initial source slice.
+- Redump acquisition uses HTTP, a listing GET, filename-oriented HEAD/GET
+  checks, and ZIP extraction. This does not solve ROMD's upstream transport
+  decision. Preserve ROMD's document hashes and bounded archive validation.
+- No-Intro uses Chromium/Playwright to navigate the daily form and wait for a
+  download. This is a useful description of the interaction to qualify; it is
+  not evidence that ROMD must add a browser runtime or that the form is a stable
+  API. Its unchecked categories must not silently define ROMD completeness.
+- Successful outputs replace prior files individually; download failures do not
+  bulk-delete working outputs. Keep that observable behavior in the ROMD slice.
+
+No third-party code was executed or copied. No root license file was present in
+the returned repository listing. Keep the existing Go/mise toolchain; do not add
+Retool filtering, filename-based version identity, or a second language merely
+to reproduce this example.
+
+### Next slice and explicit gates
+
+1. Resolve the PlayStation acquisition transport: qualify an upstream HTTPS
+   endpoint, or explicitly approve HTTP for an operator-reviewed trial. Do not
+   silently downgrade the existing HTTPS-only adapter.
+2. Acquire one complete public PSX disc document using the existing reviewed
+   identity and size/count checks. Preserve source attribution and distinguish
+   this from BIOS, restricted-catalog, or full-Redump coverage.
+3. Run the existing publisher/signing path and hand the exact authenticated
+   candidate to ROMD's preview and approval flow. A private/local trial can
+   establish this connection before public mirroring is enabled; signing keys
+   for such a test must be separate disposable test keys.
+4. Demonstrate unchanged document/repackaged ZIP producing no content event,
+   a validated changed candidate requiring review, and acquisition/validation
+   failure preserving the working catalog with an actionable error. Label
+   synthetic changes as synthetic until two actual upstream versions are seen.
+5. Enable a narrow public source only after reuse conditions are established.
+   Observe real runs before adding automation or recovery based on actual gaps.
+
+Existing scheduler/checkpoint tools remain available, but extending or deploying
+them is not an acceptance requirement for this slice. Do not bundle large-diff
+UX, broad platform enrollment, No-Intro automation, or unattended activation.
+
+Validation for an acquisition code change remains `mise run check` and
+`mise run smoke`, with synthetic boundary/failure fixtures. ROMD endpoint/UI
+changes require its backend, integration, generated-client, and web routes.
+This documentation follow-up checked whitespace and referenced local files;
+it did not rerun Go or ROMD runtime suites.
