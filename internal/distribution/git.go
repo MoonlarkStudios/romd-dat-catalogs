@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"sort"
 
+	"encoding/json"
+	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/definitions"
 	"github.com/MoonlarkStudios/romd-dat-catalogs/internal/publisher"
 )
 
@@ -80,11 +82,32 @@ func StageGit(opt StageOptions, repository, commit string) (Index, error) {
 	if err != nil {
 		return result, err
 	}
+	previous, loadErr := definitions.Load(filepath.Join(opt.State, ".definitions.json"))
+	if loadErr != nil && !errors.Is(loadErr, os.ErrNotExist) {
+		return result, loadErr
+	}
+	if opt.Definitions == nil && previous != nil {
+		return result, errors.New("cannot remove published definitions")
+	}
+	if opt.Definitions != nil {
+		if err := opt.Definitions.Compatible(previous); err != nil {
+			return result, err
+		}
+		for id, c := range s.Catalogs {
+			definition, ok := opt.Definitions.Catalogs[id]
+			if id == "synthetic/console/standard" && !ok {
+				continue
+			} // Existing hand-authored deployment fixture.
+			if !ok || definition.ExpectedName != c.Name {
+				return result, fmt.Errorf("catalog %q is not bound to its definition", id)
+			}
+		}
+	}
 	s, feed, err := publisher.Latest(s)
 	if err != nil {
 		return result, err
 	}
-	result = Index{Format: GitFormat, Version: opt.Version, Snapshot: s, Downloads: map[string]Asset{}}
+	result = Index{Definitions: opt.Definitions, Format: GitFormat, Version: opt.Version, Snapshot: s, Downloads: map[string]Asset{}}
 	ids := make([]string, 0, len(s.Catalogs))
 	for id := range s.Catalogs {
 		ids = append(ids, id)
@@ -146,6 +169,21 @@ func RestorePublication(index Index, destination string, client *http.Client) er
 	}
 	if err := publisher.RestoreLatest(destination, index.Snapshot, docs); err != nil {
 		return err
+	}
+	if index.Definitions != nil {
+		if err := index.Definitions.Validate(); err != nil {
+			os.RemoveAll(destination)
+			return err
+		}
+		b, err := json.Marshal(index.Definitions)
+		if err != nil {
+			os.RemoveAll(destination)
+			return err
+		}
+		if err := save(destination, ".definitions.json", b); err != nil {
+			os.RemoveAll(destination)
+			return err
+		}
 	}
 	if err := save(destination, ".distribution-version", []byte(fmt.Sprint(index.Version))); err != nil {
 		os.RemoveAll(destination)
