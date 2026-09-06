@@ -52,9 +52,10 @@ results; the existing publisher exposes its generic acquisition-failure code.
 ## Before live enablement
 
 Establish upstream transport and redistribution conditions; qualify full-source
-coverage and capacity; use the [durable local scheduler](source-state.md) for
-retry deadlines and registry bindings; add durable custody for ephemeral runners and interrupted-run
-recovery; and integrate review of suspicious changes. Each process must share
+coverage and capacity; use the [source-state scheduler](source-state.md) for
+retry deadlines and registry bindings; and integrate review of suspicious changes.
+Optional remote custody and explicit interrupted-run recovery are implemented
+but have not been deployed. Each process must share
 one adapter per provider.
 A new process using the adapter alone does not inherit its in-memory cooldown.
 The scheduler persists admission separately; its integration and recovery

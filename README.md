@@ -85,16 +85,20 @@ full ROM/hash semantics and anomaly policies remain pending.
 
 ## Next acceptance gates
 
-1. Complete an operational recovery drill using
-   [the deployment runbook](docs/deployment.md). Initial and ordinary live
-   synthetic publications passed; unattended outage recovery remains separate.
-   The signed catalog format remains experimental.
-2. Qualify acquisition and public redistribution conditions for each upstream.
-   Preserve system/variant distinctions and explicit inclusion settings.
-3. Add upstream adapters, qualify retention at full catalog scale, and collect
-   actual unattended change/outage observations. No GitHub API token required by readers.
-4. Integrate with ROMD's durable jobs, CAS, exact-version diff, validated
-   activation, curation preservation, history/rollback, and library convergence.
+1. Qualify reliable acquisition, public redistribution conditions, and complete
+   coverage for one real platform. Preserve variant distinctions and explicit
+   inclusion settings.
+2. Prove a ROMD vertical slice: subscribe, detect a document change, understand an
+   exact-version diff, review, and activate a validated catalog. Keep the last
+   working catalog on failure and provide a visible error with a clear retry.
+3. Observe real updates and failures, then add automation or recovery where the
+   evidence warrants it. Further infrastructure expansion is paused.
+
+Initial and ordinary live synthetic publications passed. The signed format is
+still experimental; operational outage recovery and ROMD activation acceptance
+remain unproven. Existing [source-state tools](docs/source-state.md) are available
+for explicit operator use, but live acquisition is not enabled. Readers do not
+need a GitHub API token.
 
 Only hand-authored synthetic DATs belong in current fixtures. No upstream
 content is distributed by this repository. No-Intro and Redump remain the
