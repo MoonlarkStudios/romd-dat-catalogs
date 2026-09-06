@@ -1,11 +1,13 @@
 # Upstream qualification: No-Intro and Redump
 
-Observed 2026-09-06 UTC (2026-09-05 America/Chicago). This report covers bounded
+Current PlayStation decision: see [the official redump.info qualification](redump-psx-qualification.md). It supersedes the acquisition and redistribution gates below for the standard PSX DAT only. Other providers remain unqualified.
+
+Historical observations, 2026-09-06 UTC (2026-09-05 America/Chicago). This report covers bounded
 public requests and local validation, not permission to mirror, full coverage,
 unattended reliability, or ROMD activation. Public publication remains synthetic.
 No credentials or upstream messages were used. No upstream DATs are committed.
 
-## Recommendation
+## Historical recommendation
 
 Engineer the Redump adapter first: its download listing exposes per-system
 archive endpoints, with separate BIOS identifiers. Keep live acquisition and

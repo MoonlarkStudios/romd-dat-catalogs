@@ -1,5 +1,5 @@
-// Package redump acquires an explicit, reviewed catalog allowlist. It is not
-// connected to the scheduled publisher: production source enablement is separate.
+// Package redump acquires an explicit, reviewed catalog allowlist.
+// Scheduled source enablement is controlled by the data repository.
 package redump
 
 import (
@@ -44,9 +44,11 @@ type Adapter struct {
 	cooldown time.Time
 }
 
-// New targets Redump's HTTP-only public endpoint explicitly. Publisher signing
-// authenticates distribution, not this upstream connection.
-func New() *Adapter { return newAdapter("http://redump.org", http.DefaultTransport) }
+// SourceURL identifies the official standard DAT export for a validated system.
+func SourceURL(system string) string { return "https://redump.info/datfile/" + system }
+
+// New targets the current official community endpoint without following redirects.
+func New() *Adapter { return newAdapter("https://redump.info", http.DefaultTransport) }
 func newAdapter(origin string, transport http.RoundTripper) *Adapter {
 	return &Adapter{origin: origin, gate: make(chan struct{}, 1), client: &http.Client{Transport: transport, Timeout: 30 * time.Second,
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}}
@@ -80,8 +82,8 @@ func (a *Adapter) acquire(ctx context.Context, catalogs []Catalog, stage string,
 		return nil, e
 	}
 	origin, e := url.Parse(a.origin)
-	if e != nil || origin.Scheme != "http" || origin.Host == "" || origin.User != nil || origin.RawQuery != "" || origin.ForceQuery || origin.Fragment != "" || origin.Path != "" {
-		return nil, errors.New("HTTP origin without credentials, path, query, or fragment required")
+	if e != nil || (origin.Scheme != "http" && origin.Scheme != "https") || origin.Host == "" || origin.User != nil || origin.RawQuery != "" || origin.ForceQuery || origin.Fragment != "" || origin.Path != "" {
+		return nil, errors.New("HTTP(S) origin without credentials, path, query, or fragment required")
 	}
 	// Mkdir, unlike MkdirAll, rejects reuse of an existing staging directory.
 	if e = os.Mkdir(stage, 0700); e != nil {
@@ -91,7 +93,7 @@ func (a *Adapter) acquire(ctx context.Context, catalogs []Catalog, stage string,
 	cooldown := a.cooldown
 	stopped := time.Now().Before(cooldown)
 	for i, c := range catalogs {
-		r := Result{Catalog: c, Attempt: publisher.Attempt{CatalogID: c.ID, ExpectedName: c.ExpectedName, SourceURL: a.origin + "/datfile/" + c.System + "/"}}
+		r := Result{Catalog: c, Attempt: publisher.Attempt{CatalogID: c.ID, ExpectedName: c.ExpectedName, SourceURL: a.origin + "/datfile/" + c.System}}
 		var raw []byte
 		if stopped {
 			r.Code = "provider_backoff"
@@ -116,6 +118,10 @@ func (a *Adapter) acquire(ctx context.Context, catalogs []Catalog, stage string,
 					r.SHA256 = publisher.Hash(document)
 				}
 			}
+		}
+		if !r.RetryAt.IsZero() {
+			stamp := r.RetryAt.UTC().Format(time.RFC3339Nano)
+			r.Attempt.RetryAt = &stamp
 		}
 		if observe != nil {
 			if e = observe(r); e != nil {

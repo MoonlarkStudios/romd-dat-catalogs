@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type acquirer interface {
@@ -66,11 +67,25 @@ func runWithAcquirer(args []string, out, errOut io.Writer, adapter acquirer) err
 				return errors.New("catalog identity changed; explicit migration required")
 			}
 			failure := "publication_paused"
-			a = append(a, publisher.Attempt{CatalogID: *catalogID, ExpectedName: selected.ExpectedName, SourceURL: "http://redump.org/datfile/" + selected.ProviderSystemID + "/", Failure: &failure})
+			a = append(a, publisher.Attempt{CatalogID: *catalogID, ExpectedName: selected.ExpectedName, SourceURL: redump.SourceURL(selected.ProviderSystemID), Failure: &failure})
 		} else {
 			return writeSummary(out, prior)
 		}
 	} else if *catalogID != "" {
+		prior, err := publisher.LoadSnapshot(*output)
+		if err != nil {
+			if _, stat := os.Stat(filepath.Join(*output, "current.json")); !errors.Is(stat, os.ErrNotExist) {
+				return err
+			}
+		} else if c, exists := prior.Catalogs[*catalogID]; exists && c.RetryAt != nil {
+			retry, err := time.Parse(time.RFC3339Nano, *c.RetryAt)
+			if err != nil {
+				return errors.New("invalid published retry time")
+			}
+			if time.Now().Before(retry) {
+				return writeSummary(out, prior)
+			}
+		}
 		stageRoot, err := os.MkdirTemp("", "romd-redump-")
 		if err != nil {
 			return err

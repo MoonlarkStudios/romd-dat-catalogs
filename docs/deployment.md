@@ -10,7 +10,8 @@ Status (2026-09-06): the data repository's Pages site is live at
 https://moonlarkstudios.github.io/romd-dat-data/, with RSS at
 https://moonlarkstudios.github.io/romd-dat-data/feed.xml. It publishes only the
 hand-authored synthetic catalog. Daily metadata renewal is enabled; public
-PSX mirroring remains explicitly disabled pending redistribution qualification.
+PSX mirroring is enabled separately after deploying the reviewed tooling pin;
+see [the scoped redistribution qualification](redump-psx-qualification.md).
 
 The [migration run](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/34016250699)
 and [ordinary unchanged run](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/34016317753)
@@ -248,7 +249,8 @@ expiry, rollback, tampering, and candidate-binding tests remain.
 These local tests complement the live synthetic runs recorded above. Neither
 establishes public Redump redistribution or a new ROMD activation/hardware test.
 
-Qualification status (2026-09-06): indexed official Redump overview text supports
-public metadata reuse, but a current copy could not be fetched. Applicable
-redistribution conditions still need to be established before enabling mirroring.
-Reference: http://wiki.redump.org/index.php?title=Redump.org
+Qualification status (2026-09-06): the current official redump.info site explicitly
+permits metadata reuse. The standard PlayStation DAT is qualified for centralized
+mirroring; see [scope, provenance, and evidence](redump-psx-qualification.md).
+Enable only `REDUMP_PSX_PUBLISH_ENABLED` after deploying the reviewed tooling pin.
+Do not infer qualification for No-Intro, restricted exports, BIOS, or other platforms.
