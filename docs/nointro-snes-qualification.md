@@ -5,10 +5,10 @@ Investigated 2026-09-06 UTC. Scope: `no-intro/snes/standard`, stable system
 `Nintendo - Super Nintendo Entertainment System`. This continues the earlier
 SNES investigation. No ROMD application checkout was changed.
 
-**Status: real anonymous acquisition and local publication demonstrated;
-the public DAT selection is reconciled and redistribution/retention is operator-approved.
-Public mirroring remains disabled pending rollout review.** Synthetic signed-distribution
-checks are separate from real upstream and production acceptance below.
+**Status: the approved SNES mirror is live through signed Git/Pages/RSS publication
+as of 2026-09-07 UTC.** The public DAT selection is reconciled and
+redistribution/retention is operator-approved. Synthetic tests, real production
+evidence, and application acceptance are distinguished below.
 
 ## Official acquisition
 
@@ -139,12 +139,16 @@ robots guidance or Redump's separate terms. The inspected
 trademark, and piracy notices remain preserved. This record does not invent an
 upstream license grant or publish private operator qualification records.
 
-`NOINTRO_SNES_PUBLISH_ENABLED` remains unset/false until the reviewed deployment
-step. The implementation and data-pin PRs remain unmerged. Reader rollout and
-one independently verified signed public publication are the remaining deployment
-steps; see [the rollout walkthrough](deployment.md#no-intro-rollout-walkthrough).
-This follow-up did not publish a DAT, change a secret/variable, merge a PR, or
-contact upstream. No credentials, session material, or private keys are committed.
+The operator subsequently approved merge and deployment. Tooling
+[PR #19](https://github.com/MoonlarkStudios/romd-dat-catalogs/pull/19) and data
+[PR #3](https://github.com/MoonlarkStudios/romd-dat-data/pull/3) are merged;
+both data workflow pins use tooling merge
+`069bff51587ead4bcc62e6942af2bc8364ce3af0`.
+`NOINTRO_SNES_PUBLISH_ENABLED=true` now selects SNES in the existing daily workflow.
+The existing trust root, online signing conventions, and schedule were retained.
+No credentials, session material, or private keys are committed. Application-side
+reader deployment remains owned by the ROMD application work and was not verified
+in this repository; see [the reader contract](deployment.md#no-intro-rollout-walkthrough).
 
 ## Evidence and acceptance boundaries
 
@@ -166,6 +170,29 @@ Real source evidence, local only:
 - Existing deployed Pages metadata and PSX documents restored successfully using
   the existing `trust/1.root.json`, without resetting the root or versions.
 
+Real public deployment evidence (2026-09-07 UTC):
+
+- [Initial production run 34069503517](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/34069503517)
+  acquired the official DAT and published metadata version 3008, advancing 3007.
+- The complete uncompressed document is committed at stable path
+  `no-intro/snes/standard.dat`, with the signed index and RSS enclosure bound to
+  [immutable commit 4f18544](https://raw.githubusercontent.com/MoonlarkStudios/romd-dat-data/4f18544db79f5a8f31e5cec937398d56adfa4908/no-intro/snes/standard.dat).
+  Its hash, size, and 4,358 game/ROM counts match the real source evidence above.
+- Independent `reference-data`, SNES and PSX `candidate`, and `restore` commands
+  passed against deployed Pages using the original pinned root and retained TUF
+  cache. The downloaded RSS matched its authenticated TUF target digest and
+  included the SNES event and exact immutable enclosure URL.
+- Existing PSX document hash remained
+  `62572360b7abe18df80886283e39782c2c4a325e48c6134fc179d589936fe41d`.
+
+- [Repeated production run 34069754217](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/34069754217)
+  advanced signed metadata from 3008 to 3009 with fresh healthy acquisition checks.
+  Independent authenticated reading confirmed identical DAT hashes, sizes,
+  immutable URLs, change timestamps, and RSS bytes. Data `main` remained at
+  `4f18544db79f5a8f31e5cec937398d56adfa4908`: no new document commit or content event.
+  This is real same-document evidence; ZIP repackaging and genuine document
+  changes remain covered by synthetic tests, not a newly observed upstream pair.
+
 Synthetic/offline evidence:
 
 - Explicit system/provider routing, policy controls, rejected form/redirect
@@ -181,8 +208,8 @@ Synthetic/offline evidence:
 - `mise install`, `mise run check` (race tests, vet, gofmt, actionlint, three
   builds), and `mise run smoke` all passed on 2026-09-06 UTC.
 
-No real No-Intro DAT has been publicly signed/published, no genuine changed
-upstream pair was observed, and ROMD activation was not exercised. Consumers
+No genuine changed upstream pair was observed, and ROMD activation was not
+exercised. Consumers
 must use publisher reader code that accepts the `no-intro` provider and its
 hyphenated immutable paths; older strict readers can reject the added registry.
 The signed contract remains schema 2 and Git format 2; there is no new schema or

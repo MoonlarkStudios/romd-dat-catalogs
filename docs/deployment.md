@@ -259,7 +259,8 @@ Do not infer qualification for No-Intro, restricted exports, BIOS, or other plat
 ## Gated No-Intro SNES slice
 
 The reusable workflow also selects `no-intro/snes/standard` when
-`NOINTRO_SNES_PUBLISH_ENABLED=true`. Keep it unset/false until the reviewed rollout below.
+`NOINTRO_SNES_PUBLISH_ENABLED=true`. This scoped mirror was enabled after operator
+approval on 2026-09-07 UTC; see the production evidence in the qualification record.
 [Public-catalog reconciliation and operator redistribution approval](nointro-snes-qualification.md)
 are recorded for this slice.
 Definition availability is not publication authorization. A never-enabled
@@ -322,6 +323,8 @@ root-key, or ROMD database migration is required by this change.
    must keep the DAT commit/content event; metadata signatures may renew. ROMD's
    preview/approval/activation acceptance remains owned by the application work.
 
-These steps are a walkthrough, not authorization to merge or dispatch a public
-publication. On this follow-up the operator approved redistribution/retention;
-no deployment action was performed. No new signing keys or credentials are needed.
+The operator approved this rollout, and both publisher PRs are merged. SNES is
+enabled and the signed public catalog independently verifies with the rebuilt
+reader; see [production evidence](nointro-snes-qualification.md#evidence-and-acceptance-boundaries).
+Deployment of that reader inside ROMD and application activation acceptance remain
+with the application owner. No new signing keys or credentials were needed.
