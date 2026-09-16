@@ -31,7 +31,7 @@ func TestExistingROMDSeedParity(t *testing.T) {
 	if err := json.Unmarshal(raw, &baseline); err != nil {
 		t.Fatal(err)
 	}
-	r, err := LoadSource("../../definitions")
+	r, err := Load("testdata/schema-2.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestLegacySnapshotUpgradeAndNoDowngrade(t *testing.T) {
 	if err != nil || !reflect.DeepEqual(restored, old) {
 		t.Fatal("legacy roundtrip", err)
 	}
-	next, err := LoadSource("../../definitions")
+	next, err := Load("testdata/schema-2.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,7 @@ func TestSeedValidationRejectsAmbiguity(t *testing.T) {
 }
 
 func TestExistingProviderMappingCannotBeReassigned(t *testing.T) {
-	old, err := LoadSource("../../definitions")
+	old, err := Load("testdata/schema-2.json")
 	if err != nil {
 		t.Fatal(err)
 	}

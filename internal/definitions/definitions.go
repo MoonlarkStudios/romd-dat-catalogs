@@ -1,4 +1,4 @@
-// Package definitions owns the shared system identity and catalog registry.
+// Package definitions owns DAT catalog acquisition definitions and validates ROMD identities.
 // Registry data selects known adapters; it cannot supply URLs or executable code.
 package definitions
 
@@ -86,39 +86,77 @@ func label(s string) bool {
 	return len(s) > 0 && len(s) <= 200 && strings.TrimSpace(s) == s && strings.IndexFunc(s, unicode.IsControl) < 0
 }
 
-// LoadSource assembles the fixed category files from one pinned source checkout.
-// Preserve raw JSON until Parse checks duplicate keys across the whole snapshot.
+// LoadSource reads publisher-owned catalogs and a pinned ROMD system-key export.
 func LoadSource(directory string) (*Registry, error) {
-	sections := map[string]json.RawMessage{"schemaVersion": json.RawMessage("2")}
 	entries, err := os.ReadDir(directory)
 	if err != nil {
 		return nil, err
 	}
 	for _, entry := range entries {
-		if strings.EqualFold(filepath.Ext(entry.Name()), ".json") && entry.Name() != "systems.json" && entry.Name() != "companies.json" && entry.Name() != "catalogs.json" && entry.Name() != "regions.json" && entry.Name() != "languages.json" {
-			return nil, fmt.Errorf("unknown definition file %q", entry.Name())
+		if strings.HasSuffix(entry.Name(), ".json") && entry.Name() != "catalogs.json" && entry.Name() != "system-keys.json" {
+			return nil, fmt.Errorf("unknown publisher definition %q", entry.Name())
 		}
 	}
-	for _, name := range []string{"systems", "companies", "catalogs", "regions", "languages"} {
-		path := filepath.Join(directory, name+".json")
-		stat, err := os.Lstat(path)
-		if err != nil {
-			return nil, err
-		}
-		if !stat.Mode().IsRegular() {
-			return nil, fmt.Errorf("definition file %q must be regular", name)
-		}
-		b, err := readBounded(path)
-		if err != nil {
-			return nil, err
-		}
-		sections[name] = b
-	}
-	b, err := json.Marshal(sections)
+	raw, err := readBounded(filepath.Join(directory, "system-keys.json"))
 	if err != nil {
 		return nil, err
 	}
-	return Parse(b)
+	var keys struct {
+		SchemaVersion int      `json:"schemaVersion"`
+		Systems       []string `json:"systems"`
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	if err := uniqueValue(decoder, 0); err != nil {
+		return nil, err
+	}
+	decoder = json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&keys); err != nil {
+		return nil, err
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		return nil, errors.New("trailing system-key data")
+	}
+	if keys.SchemaVersion != 1 || len(keys.Systems) == 0 {
+		return nil, errors.New("invalid ROMD system-key export")
+	}
+	known := map[string]bool{}
+	for _, key := range keys.Systems {
+		if !idPattern.MatchString(key) || known[key] {
+			return nil, errors.New("invalid or duplicate ROMD system key")
+		}
+		known[key] = true
+	}
+	raw, err = readBounded(filepath.Join(directory, "catalogs.json"))
+	if err != nil {
+		return nil, err
+	}
+	assembled := append([]byte(`{"schemaVersion":3,"catalogs":`), raw...)
+	assembled = append(assembled, '}')
+	registry, err := Parse(assembled)
+	if err != nil {
+		return nil, err
+	}
+	for _, catalog := range registry.Catalogs {
+		if !known[catalog.SystemID] {
+			return nil, fmt.Errorf("unknown ROMD system %q", catalog.SystemID)
+		}
+	}
+	return registry, nil
+}
+
+// Schema 3 publishes DAT acquisition definitions only. Legacy fields remain
+// readable so authenticated state can be restored without resetting trust.
+func (r Registry) MarshalJSON() ([]byte, error) {
+	if r.SchemaVersion == 3 {
+		return json.Marshal(struct {
+			SchemaVersion int                `json:"schemaVersion"`
+			Catalogs      map[string]Catalog `json:"catalogs"`
+		}{3, r.Catalogs})
+	}
+	type legacy Registry
+	return json.Marshal(legacy(r))
 }
 
 // Load reads a generated snapshot, such as authenticated restored state.
@@ -165,6 +203,10 @@ func Parse(b []byte) (*Registry, error) {
 	}
 	keys := []string{"schemaVersion", "systems", "catalogs", "companies"}
 	sections := []string{"systems", "catalogs", "companies"}
+	if version == 3 {
+		keys = []string{"schemaVersion", "catalogs"}
+		sections = []string{"catalogs"}
+	}
 	if version == 2 {
 		keys = append(keys, "regions", "languages")
 		sections = append(sections, "regions", "languages")
@@ -278,6 +320,12 @@ func uniqueValue(d *json.Decoder, depth int) error {
 	return nil
 }
 func (r *Registry) Validate() error {
+	if r != nil && r.SchemaVersion == 3 {
+		if len(r.Catalogs) == 0 || len(r.Catalogs) > 1000 || len(r.Systems) != 0 || len(r.Companies) != 0 || len(r.Regions) != 0 || len(r.Languages) != 0 {
+			return errors.New("invalid catalog registry")
+		}
+		return r.validateCatalogs()
+	}
 	if r == nil || (r.SchemaVersion != 1 && r.SchemaVersion != 2) || len(r.Companies) == 0 || len(r.Companies) > 10000 || len(r.Systems) == 0 || len(r.Systems) > 1000 || len(r.Catalogs) == 0 || len(r.Catalogs) > 1000 {
 		return errors.New("unsupported or empty definitions")
 	}
@@ -316,10 +364,17 @@ func (r *Registry) Validate() error {
 			seen[companyID] = true
 		}
 	}
+	return r.validateCatalogs()
+}
+
+func (r *Registry) validateCatalogs() error {
 	mappings := map[string]bool{}
 	for id, c := range r.Catalogs {
-		if _, ok := r.Systems[c.SystemID]; !ok {
+		if _, ok := r.Systems[c.SystemID]; r.SchemaVersion != 3 && !ok {
 			return fmt.Errorf("unknown system for catalog %q", id)
+		}
+		if !idPattern.MatchString(c.SystemID) {
+			return errors.New("invalid system key")
 		}
 		validProvider := (c.Provider == "redump" && c.Representation == "discs") || (c.Provider == "no-intro" && c.Representation == "standard" && noIntroSystemID.MatchString(c.ProviderSystemID))
 		if !validProvider || !idPattern.MatchString(c.ProviderSystemID) || len(c.ProviderSystemID) > 64 || !label(c.ExpectedName) || c.Validation.MinimumGames < 1 || c.Validation.MinimumROMs < 1 {
@@ -349,36 +404,38 @@ func (r *Registry) Compatible(previous *Registry) error {
 	if previous.SchemaVersion > r.SchemaVersion {
 		return errors.New("reference schema downgrade")
 	}
-	for id := range previous.Regions {
-		if _, ok := r.Regions[id]; !ok {
-			return fmt.Errorf("region %q removed; explicit migration required", id)
-		}
-	}
-	for id := range previous.Languages {
-		if _, ok := r.Languages[id]; !ok {
-			return fmt.Errorf("language %q removed; explicit migration required", id)
-		}
-	}
-	for id := range previous.Companies {
-		if _, ok := r.Companies[id]; !ok {
-			return fmt.Errorf("company %q removed; explicit migration required", id)
-		}
-	}
-	for id, old := range previous.Systems {
-		if _, ok := r.Systems[id]; !ok {
-			return fmt.Errorf("system %q removed; explicit migration required", id)
-		}
-		for provider, value := range old.ProviderMappings {
-			if r.Systems[id].ProviderMappings[provider] != value {
-				return fmt.Errorf("system %q provider mapping changed; explicit migration required", id)
+	if r.SchemaVersion != 3 {
+		for id := range previous.Regions {
+			if _, ok := r.Regions[id]; !ok {
+				return fmt.Errorf("region %q removed; explicit migration required", id)
 			}
 		}
-		before := slices.Clone(old.ManufacturerIDs)
-		after := slices.Clone(r.Systems[id].ManufacturerIDs)
-		slices.Sort(before)
-		slices.Sort(after)
-		if !slices.Equal(before, after) {
-			return fmt.Errorf("system %q manufacturer relationship changed; explicit migration required", id)
+		for id := range previous.Languages {
+			if _, ok := r.Languages[id]; !ok {
+				return fmt.Errorf("language %q removed; explicit migration required", id)
+			}
+		}
+		for id := range previous.Companies {
+			if _, ok := r.Companies[id]; !ok {
+				return fmt.Errorf("company %q removed; explicit migration required", id)
+			}
+		}
+		for id, old := range previous.Systems {
+			if _, ok := r.Systems[id]; !ok {
+				return fmt.Errorf("system %q removed; explicit migration required", id)
+			}
+			for provider, value := range old.ProviderMappings {
+				if r.Systems[id].ProviderMappings[provider] != value {
+					return fmt.Errorf("system %q provider mapping changed; explicit migration required", id)
+				}
+			}
+			before := slices.Clone(old.ManufacturerIDs)
+			after := slices.Clone(r.Systems[id].ManufacturerIDs)
+			slices.Sort(before)
+			slices.Sort(after)
+			if !slices.Equal(before, after) {
+				return fmt.Errorf("system %q manufacturer relationship changed; explicit migration required", id)
+			}
 		}
 	}
 	for id, old := range previous.Catalogs {

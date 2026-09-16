@@ -18,7 +18,7 @@ import (
 
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("commands: init, rotate, stage, restore, verify-assets, candidate, reference-data, export-data, validate-definitions")
+		return errors.New("commands: init, rotate, stage, restore, verify-assets, candidate, catalogs, export-data, validate-definitions")
 	}
 	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	switch args[0] {
@@ -143,7 +143,7 @@ func run(args []string) error {
 			return errors.New("deployed publication version does not match expected version")
 		}
 		return distribution.RestorePublication(index, *state, nil)
-	case "candidate", "reference-data":
+	case "candidate", "catalogs":
 		root := fs.String("root", "trust/1.root.json", "independently pinned public root")
 		site := fs.String("site", "", "HTTPS publisher site")
 		bundle := fs.String("bundle", "", "local signed Stage bundle; exclusive with --site")
@@ -160,8 +160,8 @@ func run(args []string) error {
 		if args[0] == "candidate" && (*id == "" || *name == "") {
 			return errors.New("candidate requires catalog and name")
 		}
-		if args[0] == "reference-data" && (*id != "" || *name != "") {
-			return errors.New("reference-data does not select a DAT")
+		if args[0] == "catalogs" && (*id != "" || *name != "") {
+			return errors.New("catalogs does not select a DAT")
 		}
 		var client *http.Client
 		if *bundle != "" {
@@ -190,11 +190,11 @@ func run(args []string) error {
 		if e != nil {
 			return e
 		}
-		if args[0] == "reference-data" {
+		if args[0] == "catalogs" {
 			if index.Definitions == nil {
 				return errors.New("publisher has no shared reference data")
 			}
-			return writeReferenceData(*out, index)
+			return writeCatalogDirectory(*out, index)
 		}
 		candidate, document, e := distribution.ReadCandidate(index, *id, *name, client)
 		if e != nil {
@@ -248,7 +248,7 @@ func main() {
 
 // The authenticated index is authoritative for both definitions and available
 // catalogs. Never fetch the unauthenticated Pages alias or download a DAT here.
-func writeReferenceData(out string, index distribution.Index) error {
+func writeCatalogDirectory(out string, index distribution.Index) error {
 	reference, err := json.Marshal(index.Definitions)
 	if err != nil {
 		return err
@@ -266,7 +266,7 @@ func writeReferenceData(out string, index distribution.Index) error {
 			os.RemoveAll(out)
 		}
 	}()
-	if err := os.WriteFile(filepath.Join(out, "reference-data.json"), reference, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(out, "catalog-definitions.json"), reference, 0600); err != nil {
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(out, "catalog.json"), publication, 0600); err != nil {

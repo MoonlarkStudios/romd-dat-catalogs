@@ -23,8 +23,10 @@ redistribution approval. An operator-driven [candidate reader](docs/romd-candida
 is available for the first ROMD review integration. Do not enable production
 AutoApply against synthetic catalogs.
 
-Shared identity lives in the reviewed [system and catalog definitions](docs/system-definitions.md).
-The tooling repository owns the source; the data site publishes its signed copy.
+ROMD owns application reference identities and presentation metadata. This repository
+owns [DAT acquisition definitions](docs/system-definitions.md) and vendors a versioned
+ROMD system-key export to validate explicit catalog mappings. Signed publications
+carry DAT catalog definitions; they do not update application reference data.
 
 ## Run
 

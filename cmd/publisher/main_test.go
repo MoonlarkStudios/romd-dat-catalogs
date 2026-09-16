@@ -54,7 +54,7 @@ func TestPausedPSX(t *testing.T) {
 			}
 			var out bytes.Buffer
 			registryPath := t.TempDir()
-			for _, name := range []string{"systems.json", "companies.json", "catalogs.json", "regions.json", "languages.json"} {
+			for _, name := range []string{"system-keys.json", "catalogs.json"} {
 				raw, err := os.ReadFile(filepath.Join("../../definitions", name))
 				if err != nil {
 					t.Fatal(err)
@@ -130,10 +130,10 @@ func TestCatalogSelectionBeforeNetwork(t *testing.T) {
 		t.Fatal("unknown selection reached network")
 	}
 	bad := t.TempDir()
-	if err := os.WriteFile(filepath.Join(bad, "systems.json"), []byte(`{"psx":{},"psx":{}}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(bad, "system-keys.json"), []byte(`{"schemaVersion":1,"systems":["psx","psx"]}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"companies.json", "catalogs.json", "regions.json", "languages.json"} {
+	for _, name := range []string{"catalogs.json"} {
 		raw, err := os.ReadFile(filepath.Join("../../definitions", name))
 		if err != nil {
 			t.Fatal(err)

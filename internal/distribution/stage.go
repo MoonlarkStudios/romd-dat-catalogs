@@ -199,8 +199,8 @@ func signIndex(opt StageOptions, result Index, feed []byte) (Index, error) {
 		if err != nil {
 			return result, err
 		}
-		files["reference-data.json"] = b
-		if err := save(filepath.Join(opt.Output, "site"), "reference-data.json", b); err != nil {
+		files["catalog-definitions.json"] = b
+		if err := save(filepath.Join(opt.Output, "site"), "catalog-definitions.json", b); err != nil {
 			return result, err
 		}
 	}

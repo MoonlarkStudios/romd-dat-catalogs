@@ -49,17 +49,14 @@ func TestSignedSharedDefinitions(t *testing.T) {
 	if verified.Definitions == nil || verified.Definitions.Catalogs["redump/psx/discs"].SystemID != "psx" {
 		t.Fatal("missing signed system identity")
 	}
-	if verified.Definitions.Companies["sony"].Name != "Sony" || len(verified.Definitions.Companies) != 15 || verified.Definitions.Systems["psx"].ManufacturerIDs[0] != "sony" {
-		t.Fatal("company grouping missing from signed index")
-	}
-	if verified.Definitions.SchemaVersion != 2 || len(verified.Definitions.Systems) != 56 || len(verified.Definitions.Regions) != 20 || len(verified.Definitions.Languages) != 16 || verified.Definitions.Systems["psx"].ProviderMappings["igdb"] != "7" {
-		t.Fatal("complete reference seeds missing from authenticated index")
+	if verified.Definitions.SchemaVersion != 3 || len(verified.Definitions.Systems) != 0 || len(verified.Definitions.Companies) != 0 {
+		t.Fatal("application taxonomy leaked into signed catalog directory")
 	}
 	expected, _ := json.Marshal(index.Definitions)
-	if !bytes.Equal(expected, read(t, filepath.Join(out, "site/reference-data.json"))) {
+	if !bytes.Equal(expected, read(t, filepath.Join(out, "site/catalog-definitions.json"))) {
 		t.Fatal("alias differs from signed index definitions")
 	}
-	if !bytes.Equal(expected, read(t, filepath.Join(out, "site/targets", publisher.Hash(expected)+".reference-data.json"))) {
+	if !bytes.Equal(expected, read(t, filepath.Join(out, "site/targets", publisher.Hash(expected)+".catalog-definitions.json"))) {
 		t.Fatal("systems target differs")
 	}
 	var targets struct {
@@ -79,7 +76,7 @@ func TestSignedSharedDefinitions(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(out, "site/systems.json")); !os.IsNotExist(err) {
 		t.Fatal("obsolete systems alias emitted")
 	}
-	target, ok := targets.Signed.Targets["reference-data.json"]
+	target, ok := targets.Signed.Targets["catalog-definitions.json"]
 	if !ok || target.Length != len(expected) || target.Hashes["sha256"] != publisher.Hash(expected) {
 		t.Fatal("definitions not authenticated as a TUF target")
 	}

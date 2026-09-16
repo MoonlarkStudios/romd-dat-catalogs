@@ -80,21 +80,21 @@ func TestInitAndStageCLI(t *testing.T) {
 	if e := run([]string{"stage", "--state", state, "--trust", filepath.Join(keys, "public"), "--keys", filepath.Join(keys, "online.json"), "--out", gitStage, "--version", "2", "--data-repository", "example/data", "--data-commit", strings.Repeat("a", 40), "--definitions", "../../definitions"}); e != nil {
 		t.Fatal(e)
 	}
-	for _, name := range []string{"index.json", "site/metadata/timestamp.json", "site/feed.xml", "site/reference-data.json"} {
+	for _, name := range []string{"index.json", "site/metadata/timestamp.json", "site/feed.xml", "site/catalog-definitions.json"} {
 		if _, e := os.Stat(filepath.Join(gitStage, name)); e != nil {
 			t.Fatal(e)
 		}
 	}
 	referenceOut := filepath.Join(dir, "reference")
-	referenceArgs := []string{"reference-data", "--root", filepath.Join(keys, "public", "1.root.json"), "--bundle", gitStage, "--cache", filepath.Join(dir, "reference-cache"), "--out", referenceOut}
+	referenceArgs := []string{"catalogs", "--root", filepath.Join(keys, "public", "1.root.json"), "--bundle", gitStage, "--cache", filepath.Join(dir, "reference-cache"), "--out", referenceOut}
 	// The Pages alias is not trusted. The reader must use verified index bytes.
-	if err := os.WriteFile(filepath.Join(gitStage, "site/reference-data.json"), []byte(`{"untrusted":true}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(gitStage, "site/catalog-definitions.json"), []byte(`{"untrusted":true}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err := run(referenceArgs); err != nil {
 		t.Fatal(err)
 	}
-	reference, err := os.ReadFile(filepath.Join(referenceOut, "reference-data.json"))
+	reference, err := os.ReadFile(filepath.Join(referenceOut, "catalog-definitions.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestInitAndStageCLI(t *testing.T) {
 		SchemaVersion int
 		Systems       map[string]json.RawMessage
 	}
-	if err := json.Unmarshal(reference, &seeds); err != nil || seeds.SchemaVersion != 2 || len(seeds.Systems) != 56 {
+	if err := json.Unmarshal(reference, &seeds); err != nil || seeds.SchemaVersion != 3 || len(seeds.Systems) != 0 {
 		t.Fatal("incomplete seeds", err)
 	}
 	if err := run(referenceArgs); err == nil {
@@ -137,7 +137,7 @@ func TestInitAndStageCLI(t *testing.T) {
 }
 
 func TestCommandValidation(t *testing.T) {
-	for _, args := range [][]string{nil, {"unknown"}, {"init"}, {"stage", "--keys", "missing"}, {"restore", "--site", "http://example.invalid"}, {"reference-data"}, {"reference-data", "--site", "https://example.invalid", "--cache", "unused", "--out", "unused", "--catalog", "redump/psx/discs"}} {
+	for _, args := range [][]string{nil, {"unknown"}, {"init"}, {"stage", "--keys", "missing"}, {"restore", "--site", "http://example.invalid"}, {"catalogs"}, {"catalogs", "--site", "https://example.invalid", "--cache", "unused", "--out", "unused", "--catalog", "redump/psx/discs"}} {
 		if e := run(args); e == nil {
 			t.Fatalf("accepted %v", args)
 		}
