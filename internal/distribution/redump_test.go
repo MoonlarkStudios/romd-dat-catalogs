@@ -13,7 +13,7 @@ import (
 )
 
 func TestSignedRedumpCandidate(t *testing.T) {
-	for _, system := range []string{"psx", "saturn", "segacd", "dc"} {
+	for _, system := range []string{"psx", "saturn", "segacd", "dc", "gc", "ps2", "wii"} {
 		t.Run(system, func(t *testing.T) { testSignedRedumpCandidate(t, system) })
 	}
 }

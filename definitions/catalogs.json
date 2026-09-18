@@ -163,5 +163,38 @@
       "minimumGames": 1400,
       "minimumRoms": 11500
     }
+  },
+  "redump/gc/discs": {
+    "systemId": "gc",
+    "provider": "redump",
+    "providerSystemId": "gc",
+    "representation": "discs",
+    "expectedName": "Nintendo - GameCube",
+    "validation": {
+      "minimumGames": 1800,
+      "minimumRoms": 1800
+    }
+  },
+  "redump/ps2/discs": {
+    "systemId": "ps2",
+    "provider": "redump",
+    "providerSystemId": "ps2",
+    "representation": "discs",
+    "expectedName": "Sony - PlayStation 2",
+    "validation": {
+      "minimumGames": 11000,
+      "minimumRoms": 14000
+    }
+  },
+  "redump/wii/discs": {
+    "systemId": "wii",
+    "provider": "redump",
+    "providerSystemId": "wii",
+    "representation": "discs",
+    "expectedName": "Nintendo - Wii",
+    "validation": {
+      "minimumGames": 3500,
+      "minimumRoms": 3500
+    }
   }
 }
