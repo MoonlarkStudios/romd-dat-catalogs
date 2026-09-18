@@ -130,5 +130,38 @@
       "minimumGames": 200,
       "minimumRoms": 200
     }
+  },
+  "redump/saturn/discs": {
+    "systemId": "saturn",
+    "provider": "redump",
+    "providerSystemId": "ss",
+    "representation": "discs",
+    "expectedName": "Sega - Saturn",
+    "validation": {
+      "minimumGames": 2300,
+      "minimumRoms": 28000
+    }
+  },
+  "redump/segacd/discs": {
+    "systemId": "segacd",
+    "provider": "redump",
+    "providerSystemId": "mcd",
+    "representation": "discs",
+    "expectedName": "Sega - Mega CD & Sega CD",
+    "validation": {
+      "minimumGames": 500,
+      "minimumRoms": 7500
+    }
+  },
+  "redump/dc/discs": {
+    "systemId": "dc",
+    "provider": "redump",
+    "providerSystemId": "dc",
+    "representation": "discs",
+    "expectedName": "Sega - Dreamcast",
+    "validation": {
+      "minimumGames": 1400,
+      "minimumRoms": 11500
+    }
   }
 }
