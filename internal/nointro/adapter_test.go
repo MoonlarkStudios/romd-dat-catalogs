@@ -234,6 +234,20 @@ func TestBoundsCancellationAndBackoff(t *testing.T) {
 	}
 }
 
+// admissionRecorder observes the adapter's admission timestamp before HTTP
+// transport or server scheduling can shift the time a request is received.
+// Acquire serializes these calls, so the observation stays on the caller thread.
+type admissionRecorder struct {
+	base    http.RoundTripper
+	adapter *Adapter
+	starts  *[]time.Time
+}
+
+func (r admissionRecorder) RoundTrip(req *http.Request) (*http.Response, error) {
+	*r.starts = append(*r.starts, r.adapter.next.Add(-r.adapter.gap))
+	return r.base.RoundTrip(req)
+}
+
 func TestHTTPBoundariesAndPacing(t *testing.T) {
 	for _, kind := range []string{"oversize-form", "encoding", "truncated", "oversize-download", "html-download"} {
 		t.Run(kind, func(t *testing.T) {
@@ -276,7 +290,6 @@ func TestHTTPBoundariesAndPacing(t *testing.T) {
 	var observed []time.Time
 	step := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		observed = append(observed, time.Now())
 		step++
 		switch step {
 		case 1:
@@ -292,12 +305,14 @@ func TestHTTPBoundariesAndPacing(t *testing.T) {
 	}))
 	defer server.Close()
 	gap := 20 * time.Millisecond
-	r, err := newAdapter(server.URL, server.Client().Transport, gap).Acquire(context.Background(), "no-intro/snes/standard", catalog(), filepath.Join(t.TempDir(), "input"))
+	paced := newAdapter(server.URL, server.Client().Transport, gap)
+	paced.client.Transport = admissionRecorder{server.Client().Transport, paced, &observed}
+	r, err := paced.Acquire(context.Background(), "no-intro/snes/standard", catalog(), filepath.Join(t.TempDir(), "input"))
 	if err != nil || r.Code != "" || len(observed) != 4 {
 		t.Fatal(r, err, len(observed))
 	}
 	for i := 1; i < len(observed); i++ {
-		if observed[i].Sub(observed[i-1]) < gap-time.Millisecond {
+		if observed[i].Sub(observed[i-1]) < gap {
 			t.Fatal("request pacing ignored")
 		}
 	}
@@ -367,14 +382,15 @@ func TestReviewedHandheldForms(t *testing.T) {
 
 func TestPacingAcrossCatalogs(t *testing.T) {
 	var starts []time.Time
+	step := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		starts = append(starts, time.Now())
+		step++
 		id := r.URL.Query().Get("s")
 		name := "Nintendo - Game Boy"
 		if id == "49" {
 			name = catalog().ExpectedName
 		}
-		switch (len(starts) - 1) % 4 {
+		switch (step - 1) % 4 {
 		case 0:
 			io.WriteString(w, strings.ReplaceAll(strings.ReplaceAll(selection(), "49", id), catalog().ExpectedName, name))
 		case 1:
@@ -389,6 +405,7 @@ func TestPacingAcrossCatalogs(t *testing.T) {
 	defer server.Close()
 	gap := 20 * time.Millisecond
 	a := newAdapter(server.URL, server.Client().Transport, gap)
+	a.client.Transport = admissionRecorder{server.Client().Transport, a, &starts}
 	for _, key := range []string{"snes", "gb"} {
 		c := catalog()
 		if key == "gb" {
@@ -401,7 +418,7 @@ func TestPacingAcrossCatalogs(t *testing.T) {
 			t.Fatal(result, err)
 		}
 	}
-	if len(starts) != 8 || starts[4].Sub(starts[3]) < gap-time.Millisecond {
+	if len(starts) != 8 || starts[4].Sub(starts[3]) < gap {
 		t.Fatal("cross-catalog request pacing lost")
 	}
 }

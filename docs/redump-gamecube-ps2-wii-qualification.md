@@ -162,3 +162,10 @@ publication and isolated ROMD catalog-ingestion scope. Implementation CI, local
 checks, both production workflows and the acceptance checks described above
 passed within their stated limits. Existing GitHub Action Node-20 deprecation /
 forced Node-24 execution and upcoming Ubuntu-image notices remain unchanged.
+
+The final closeout PR's first CI run failed the existing No-Intro cross-catalog
+pacing test. It measured server-arrival spacing rather than client admission,
+which can vary with scheduling. Both pacing tests now observe admission timestamps
+and require the full configured gap, with no production adapter change. Thirty
+race-enabled repetitions and the full local check passed; a temporary deadline-reset
+negative control was rejected. See the [validation retrospective](known-issues.md).
