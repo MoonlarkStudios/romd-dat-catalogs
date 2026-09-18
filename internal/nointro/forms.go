@@ -120,6 +120,22 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 	if c.ProviderSystemID == "24" {
 		delete(values, "inc_adult")
 	}
+	// Reviewed batch-3 forms have no collection/adult selectors. Only SMS
+	// exposes nodump; SMS includes x/z-ROM groups and GG includes x-ROMs.
+	switch c.ProviderSystemID {
+	case "26", "25", "17", "12":
+		delete(values, "collection")
+		delete(values, "inc_adult")
+		if c.ProviderSystemID != "26" {
+			delete(values, "inc_nodump")
+		}
+		if c.ProviderSystemID == "26" || c.ProviderSystemID == "25" {
+			values.Set("inc_xroms", "1")
+		}
+		if c.ProviderSystemID == "26" {
+			values.Set("inc_zroms", "1")
+		}
+	}
 	found := map[string]int{}
 	submit := ""
 	for _, i := range inputs.FindAllStringSubmatch(content, -1) {
