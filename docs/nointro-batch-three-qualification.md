@@ -129,5 +129,5 @@ Batch 3 is complete within acquisition, signed publication and ROMD catalog
 ingestion scope. Local checks, implementation CI and the production workflow
 passed. No new backend suite, frontend build, ROM import, normalization,
 emulator/hardware launch, NAS deployment, changed real revision or scheduled
-observation was exercised. Batch 4 (Saturn, Sega CD and Dreamcast) remains planned
-and disabled. No recurring rollout automation was created or resumed.
+observation was exercised. Batch 4 (Saturn, Sega CD and Dreamcast) subsequently
+completed [qualification and rollout](redump-sega-qualification.md). No recurring rollout automation was created or resumed.

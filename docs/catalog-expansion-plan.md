@@ -18,7 +18,9 @@ acceptance. Batch 2 is complete within catalog scope.
 [Batch 3 qualification and rollout](nointro-batch-three-qualification.md) covers
 Master System, Game Gear, PC Engine/TurboGrafx-16 and 32X. All four are publicly
 deployed and passed the same isolated ROMD acceptance gates. Batch 3 is complete
-within catalog scope. Batch 4 (Saturn, Sega CD, Dreamcast) is next.
+within catalog scope. [Batch 4 qualification and rollout](redump-sega-qualification.md)
+covers Saturn, Sega CD and Dreamcast, now publicly deployed and accepted in ROMD.
+All four planned expansion batches are complete within catalog scope.
 
 ## SNES closeout
 
@@ -128,9 +130,9 @@ not a claim that deferred systems cannot work.
    Pause a failing catalog and retain its working artifact; a genuine upstream
    version change is recorded when available, not fabricated to close a gate.
 
-The next implementation slice is batch 4 qualification: Saturn, Sega CD and
-Dreamcast. Verify exact Redump identities, complete public membership, track and
-multi-disc representations, archive limits and measured floors before enablement.
-None of batch 4 is enabled yet. Reuse the signed publication workflow and existing
-trust root. The operator authorized immediate batch-2 and batch-3 rollout after
-qualification; no scheduled observation is claimed for those batches.
+All four expansion batches are now complete in acquisition, signed publication
+and isolated ROMD catalog-ingestion scope. Further systems require a new scoped
+qualification plan, including provider identity, public coverage, representation,
+capacity and application acceptance. No further systems are enabled by this plan.
+The operator authorized immediate rollout of batches 2–4 after qualification;
+no scheduled observation is claimed for those batches.

@@ -2,7 +2,9 @@
 
 `internal/redump` acquires reviewed, data-driven catalog selections. The data
 repository's daily workflow calls `publisher --catalog redump/psx/discs` only when
-`REDUMP_PSX_PUBLISH_ENABLED=true`. ROMD instances download from the signed mirror.
+`REDUMP_PSX_PUBLISH_ENABLED=true`. Qualified Saturn, Sega CD and Dreamcast have
+their own explicit opt-ins; see [Sega disc qualification](redump-sega-qualification.md).
+ROMD instances download from the signed mirror.
 Tests use synthetic data and local HTTP servers.
 
 The production endpoint is `https://redump.info/datfile/psx`, without a trailing
@@ -39,7 +41,7 @@ partial result from such a call. Acquisition never changes publisher state.
 
 ## Network and validation behavior
 
-- HTTP to the fixed Redump origin, no redirects, no credentials, and an
+- HTTPS to the fixed Redump origin, no redirects, no credentials, and an
   identifying User-Agent. Transport injection is private to synthetic tests.
 - One request per catalog with no automatic retries. Calls on the same adapter
   serialize with context-aware admission. Requests have a 30-second timeout
@@ -86,7 +88,9 @@ Run `mise run check` and `mise run smoke`. These tests do not establish real
 Redump availability, sustained throughput, or unattended publication readiness.
 
 
-The HTTP transport decision supersedes the earlier HTTPS-only qualification gate.
+### Historical transport trial (superseded by the current HTTPS endpoint)
+
+The earlier HTTP transport trial superseded its initial HTTPS-only gate.
 Acquisition results record the HTTP source URL. Existing source-state snapshots
 bind their origin and therefore reject an older HTTPS binding; no deployed real
 source state is known. Do not rewrite a checkpoint to disguise that identity
