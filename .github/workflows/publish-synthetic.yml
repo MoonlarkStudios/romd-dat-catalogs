@@ -76,6 +76,10 @@ jobs:
           GENESIS_ENABLED: ${{ vars.NOINTRO_GENESIS_PUBLISH_ENABLED }}
           N64_ENABLED: ${{ vars.NOINTRO_N64_PUBLISH_ENABLED }}
           NES_ENABLED: ${{ vars.NOINTRO_NES_PUBLISH_ENABLED }}
+          SMS_ENABLED: ${{ vars.NOINTRO_SMS_PUBLISH_ENABLED }}
+          GG_ENABLED: ${{ vars.NOINTRO_GG_PUBLISH_ENABLED }}
+          TG16_ENABLED: ${{ vars.NOINTRO_TG16_PUBLISH_ENABLED }}
+          SEGA32X_ENABLED: ${{ vars.NOINTRO_32X_PUBLISH_ENABLED }}
         run: |
           set -euo pipefail
           args=(--output output --definitions definitions)
@@ -94,6 +98,10 @@ jobs:
           select_catalog no-intro/genesis/standard "$GENESIS_ENABLED"
           select_catalog no-intro/n64/standard "$N64_ENABLED"
           select_catalog no-intro/nes/standard "$NES_ENABLED"
+          select_catalog no-intro/sms/standard "$SMS_ENABLED"
+          select_catalog no-intro/gg/standard "$GG_ENABLED"
+          select_catalog no-intro/tg16/standard "$TG16_ENABLED"
+          select_catalog no-intro/32x/standard "$SEGA32X_ENABLED"
           ./bin/publisher "${args[@]}" > publication-summary.json
           {
             printf '### Catalog acquisition result\n\n```json\n'

@@ -86,5 +86,49 @@
       "minimumGames": 7000,
       "minimumRoms": 7000
     }
+  },
+  "no-intro/sms/standard": {
+    "systemId": "sms",
+    "provider": "no-intro",
+    "providerSystemId": "26",
+    "representation": "standard",
+    "expectedName": "Sega - Master System - Mark III",
+    "validation": {
+      "minimumGames": 1100,
+      "minimumRoms": 1100
+    }
+  },
+  "no-intro/gg/standard": {
+    "systemId": "gg",
+    "provider": "no-intro",
+    "providerSystemId": "25",
+    "representation": "standard",
+    "expectedName": "Sega - Game Gear",
+    "validation": {
+      "minimumGames": 850,
+      "minimumRoms": 850
+    }
+  },
+  "no-intro/tg16/standard": {
+    "systemId": "tg16",
+    "provider": "no-intro",
+    "providerSystemId": "12",
+    "representation": "standard",
+    "expectedName": "NEC - PC Engine - TurboGrafx-16",
+    "validation": {
+      "minimumGames": 450,
+      "minimumRoms": 450
+    }
+  },
+  "no-intro/32x/standard": {
+    "systemId": "32x",
+    "provider": "no-intro",
+    "providerSystemId": "17",
+    "representation": "standard",
+    "expectedName": "Sega - 32X",
+    "validation": {
+      "minimumGames": 200,
+      "minimumRoms": 200
+    }
   }
 }

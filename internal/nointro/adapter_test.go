@@ -462,3 +462,71 @@ func TestHomeConsoleSelections(t *testing.T) {
 		})
 	}
 }
+
+func TestReviewedBatchThreeForms(t *testing.T) {
+	for _, tc := range []struct{ key, id, name string }{
+		{"sms", "26", "Sega - Master System - Mark III"},
+		{"gg", "25", "Sega - Game Gear"},
+		{"tg16", "12", "NEC - PC Engine - TurboGrafx-16"},
+		{"32x", "17", "Sega - 32X"},
+	} {
+		t.Run(tc.key, func(t *testing.T) {
+			c := catalog()
+			c.SystemID, c.ProviderSystemID, c.ExpectedName = tc.key, tc.id, tc.name
+			raw := strings.ReplaceAll(strings.ReplaceAll(selection(), "49", tc.id), catalog().ExpectedName, tc.name)
+			for _, control := range []string{"collection", "inc_adult"} {
+				raw = regexp.MustCompile(`<input[^>]*name="`+control+`"[^>]*>`).ReplaceAllString(raw, "")
+			}
+			if tc.key != "sms" {
+				raw = regexp.MustCompile(`<input[^>]*name="inc_nodump"[^>]*>`).ReplaceAllString(raw, "")
+			}
+			if tc.key == "sms" || tc.key == "gg" {
+				raw = strings.Replace(raw, "</form>", `<input type="radio" name="inc_xroms" value="1"><input type="radio" name="inc_xroms" value="0"></form>`, 1)
+			}
+			if tc.key == "sms" {
+				raw = strings.Replace(raw, "</form>", `<input type="radio" name="inc_zroms" value="1"><input type="radio" name="inc_zroms" value="0"></form>`, 1)
+			}
+			if tc.key == "gg" || tc.key == "tg16" {
+				raw = strings.Replace(raw, "</form>", `<input type="radio" name="inc_mia" value="1"></form>`, 1)
+			}
+			values, err := prepareForm([]byte(raw), c)
+			if err != nil || values.Get("format") != "0" || values.Has("collection") || values.Has("inc_adult") {
+				t.Fatal(values, err)
+			}
+			if (tc.key == "sms" || tc.key == "gg") && values.Get("inc_xroms") != "1" {
+				t.Fatal("excluded x-ROM group")
+			}
+			if tc.key == "sms" && (values.Get("inc_zroms") != "1" || values.Get("inc_nodump") != "1") {
+				t.Fatal("excluded SMS category")
+			}
+			if tc.key != "sms" && values.Has("inc_nodump") {
+				t.Fatal("invented absent nodump control")
+			}
+			if (tc.key == "gg" || tc.key == "tg16") && values.Get("inc_mia") != "1" {
+				t.Fatal("excluded MIA")
+			}
+			for _, control := range []string{"format", "release_2", "license_0", "storage_2"} {
+				broken := regexp.MustCompile(`<input[^>]*name="`+control+`"[^>]*>`).ReplaceAllString(raw, "")
+				if _, err := prepareForm([]byte(broken), c); err == nil {
+					t.Fatal("missing required selection accepted", control)
+				}
+			}
+			if tc.key == "sms" || tc.key == "gg" {
+				broken := strings.Replace(raw, `name="inc_xroms" value="1"`, `name="inc_xroms" value="0"`, 1)
+				if _, err := prepareForm([]byte(broken), c); err == nil {
+					t.Fatal("missing inclusion accepted")
+				}
+			}
+			if _, err := prepareForm([]byte(raw), catalog()); err == nil {
+				t.Fatal("cross-system form accepted")
+			}
+			doc := bytes.ReplaceAll(bytes.ReplaceAll(document(), []byte("<id>49</id>"), []byte("<id>"+tc.id+"</id>")), []byte(catalog().ExpectedName), []byte(tc.name))
+			if _, _, err := Validate(doc, c); err != nil {
+				t.Fatal(err)
+			}
+			if _, _, err := Validate(doc, catalog()); err == nil {
+				t.Fatal("cross-system DAT accepted")
+			}
+		})
+	}
+}
