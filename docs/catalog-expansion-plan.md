@@ -6,7 +6,9 @@ additional catalogs. No new catalog is enabled by this document.
 Batch 1 implementation and local qualification are now recorded in
 [Game Boy family qualification](nointro-handheld-qualification.md). All three
 complete-public acquisitions and database membership comparisons passed.
-Public enablement and application acceptance remain pending.
+Game Boy is live and its isolated ROMD acceptance passed. GBC/GBA public
+enablement and application acceptance await the next scheduled healthy Game Boy
+publication.
 
 ## SNES closeout
 
