@@ -405,3 +405,53 @@ func TestPacingAcrossCatalogs(t *testing.T) {
 		t.Fatal("cross-catalog request pacing lost")
 	}
 }
+
+func TestHomeConsoleSelections(t *testing.T) {
+	for _, tc := range []struct{ key, id, name string }{
+		{"nes", "45", "Nintendo - Nintendo Entertainment System"},
+		{"genesis", "32", "Sega - Mega Drive - Genesis"},
+		{"n64", "24", "Nintendo - Nintendo 64 (BigEndian)"},
+	} {
+		t.Run(tc.key, func(t *testing.T) {
+			c := catalog()
+			c.SystemID, c.ProviderSystemID, c.ExpectedName = tc.key, tc.id, tc.name
+			raw := strings.ReplaceAll(strings.ReplaceAll(selection(), "49", tc.id), catalog().ExpectedName, tc.name)
+			raw = regexp.MustCompile(`<input[^>]*name="collection"[^>]*>`).ReplaceAllString(raw, "")
+			if tc.key == "nes" {
+				raw = strings.Replace(raw, "</form>", `<input type="radio" name="header_plugin" value="0"><input type="radio" name="header_plugin" value="1"></form>`, 1)
+			}
+			if tc.key == "n64" {
+				raw = strings.ReplaceAll(raw, tc.name, "Nintendo - Nintendo 64")
+				raw = regexp.MustCompile(`<input[^>]*name="inc_adult"[^>]*>`).ReplaceAllString(raw, "")
+			}
+			values, err := prepareForm([]byte(raw), c)
+			if err != nil || values.Get("format") != "0" || values.Has("collection") {
+				t.Fatal("wrong reviewed representation", values, err)
+			}
+			if tc.key == "nes" && values.Get("header_plugin") != "0" {
+				t.Fatal("NES header plugin enabled")
+			}
+			if tc.key == "n64" && values.Has("inc_adult") {
+				t.Fatal("invented N64 control")
+			}
+			for _, broken := range []string{
+				regexp.MustCompile(`<input[^>]*name="format"[^>]*>`).ReplaceAllString(raw, `<input type="radio" name="format" value="1">`),
+				strings.Replace(raw, "</form>", `<input type="radio" name="format" value="0"></form>`, 1),
+			} {
+				if _, err := prepareForm([]byte(broken), c); err == nil {
+					t.Fatal("missing or ambiguous representation accepted")
+				}
+			}
+			if _, err := prepareForm([]byte(raw), catalog()); err == nil {
+				t.Fatal("wrong system form accepted")
+			}
+			doc := bytes.ReplaceAll(bytes.ReplaceAll(document(), []byte("<id>49</id>"), []byte("<id>"+tc.id+"</id>")), []byte(catalog().ExpectedName), []byte(tc.name))
+			if _, _, err := Validate(doc, c); err != nil {
+				t.Fatal(err)
+			}
+			if _, _, err := Validate(doc, catalog()); err == nil {
+				t.Fatal("wrong system document accepted")
+			}
+		})
+	}
+}
