@@ -79,3 +79,93 @@ IDs or extra DAT IDs for all three. The public listing totals also match. No
 questionable-record exclusions were needed for this batch. This proves observed
 public export coverage at qualification time, not that every released disc is
 known to Redump.
+
+## Release authorization and tooling pin
+
+The operator requested GameCube and selected PS2/Wii as its companion batch.
+Tooling [PR #31](https://github.com/MoonlarkStudios/romd-dat-catalogs/pull/31)
+passed CI and merged at `f1652d0ce396de9682caf564888e6eb6a05f71e8`.
+Data [PR #9](https://github.com/MoonlarkStudios/romd-dat-data/pull/9) pins both
+workflow references to that revision. Explicit variables `REDUMP_GC_PUBLISH_ENABLED`,
+`REDUMP_PS2_PUBLISH_ENABLED` and `REDUMP_WII_PUBLISH_ENABLED` are enabled.
+The existing root and metadata progression are retained. No rollout automation
+was created or resumed, and no scheduled observation is claimed.
+
+## Initial production publication
+
+[Run 35382363216](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/35382363216)
+passed the workflow, including deployed signature-chain restoration. Independent
+verification authenticated publication **3032**, schema **3**. All three new
+catalogs are healthy with successful acquisition at
+`2026-09-18T18:53:47.495940887Z`; signed candidate downloads exactly match the
+qualified bytes/hashes/counts. Immutable assets reference data commit
+`b2765a244b9b1b8cb26bda5e11a03bbfca572c2f`.
+
+This first run was not healthy for every existing source: NES acquisition logged
+`prepare_failed`, and its signed health was failed while its prior document was
+retained. No retry deadline was recorded. A fresh recovery run was dispatched
+without changing validation, clearing caches or resetting trust. The exact failed
+preparation stage was not retained, so no specific upstream root cause is claimed.
+
+## Isolated ROMD acceptance
+
+The existing separate acceptance Docker project and database/data volumes were
+reused. GameCube, PS2 and Wii each passed browser discovery, verified first-import
+review, explicit approval, processing and Active source checks. Review versions
+and entry/file counts matched qualification; each reported zero BIOS entries.
+
+Every imported game/file name, size, CRC32, MD5 and SHA-1 was compared against
+the qualified standard DAT using counted tuples. All 20,866 file records match,
+including 1,953 PS2 and 3,777 Wii records above 4 GiB. Maximum imported sizes
+exactly match the measurements above. No narrowing, truncation or loss of CD
+tracks or cues was observed in these metadata imports.
+
+Normal test-account OAuth checks returned UpToDate without error, and active
+DAT downloads matched signed lengths and SHA-256. Pointing only the isolated
+admin at an unreachable publisher returned CheckFailed for all three while the
+same active DAT IDs and exact downloads remained available. Restoring the real
+publisher returned UpToDate, no errors and zero consecutive failures.
+
+Before/after evidence is identical apart from SQL row order: 16 Active versions,
+46,373 entries, 96,789 files and 16 import jobs (the previous 13 catalogs plus
+these three). There were no duplicate imports or replaced active documents.
+The saved original Compose definition was used so concurrent application deployment
+edits remained untouched. Existing application images/frontend were reused; no
+application source or generated client changed, and no new backend suite or
+frontend build was run.
+
+An automatic browser approval review timed out once while opening source discovery.
+The permitted retry succeeded; the test account then signed in through the normal
+flow after its session expired. The timeout did not require bypassing browser
+security or changing app permissions.
+
+Acceptance is for catalog ingestion and retention. No game-image import or
+RVZ/WBFS/CHD conversion, game launch, disc switching, hardware/emulator acceptance,
+NAS deployment, changed real upstream revision or scheduled observation is claimed.
+
+## Final production recovery and closeout
+
+[Recovery run 35385781139](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/35385781139)
+passed the complete workflow. Independent verification with the retained cache
+and original root authenticated publication **3033**, schema **3**, with all
+**18 real catalogs healthy**, including NES. The three new catalogs and NES
+record successful acquisition at `2026-09-18T19:29:45.792905232Z`. New-catalog
+artifact hashes and sizes are unchanged from 3032 and qualification; their
+original signed content events remain at sequence 74. This is a second healthy
+manual acquisition of the new catalogs, not a scheduled observation or changed
+upstream revision. The first NES failure is retained above rather than hidden
+behind overall workflow success.
+
+A refreshed GameCube browser page confirmed Active and Up to date after the
+application outage test. Batch 5 is complete within acquisition, signed
+publication and isolated ROMD catalog-ingestion scope. Implementation CI, local
+checks, both production workflows and the acceptance checks described above
+passed within their stated limits. Existing GitHub Action Node-20 deprecation /
+forced Node-24 execution and upcoming Ubuntu-image notices remain unchanged.
+
+The final closeout PR's first CI run failed the existing No-Intro cross-catalog
+pacing test. It measured server-arrival spacing rather than client admission,
+which can vary with scheduling. Both pacing tests now observe admission timestamps
+and require the full configured gap, with no production adapter change. Thirty
+race-enabled repetitions and the full local check passed; a temporary deadline-reset
+negative control was rejected. See the [validation retrospective](known-issues.md).

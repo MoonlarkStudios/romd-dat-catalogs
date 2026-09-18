@@ -136,3 +136,14 @@ qualification plan, including provider identity, public coverage, representation
 capacity and application acceptance. No further systems are enabled by this plan.
 The operator authorized immediate rollout of batches 2–4 after qualification;
 no scheduled observation is claimed for those batches.
+
+## Batch 5: GameCube, PlayStation 2 and Wii
+
+After the original four batches, the operator requested GameCube and selected PS2
+and Wii as companion systems. [Qualification and rollout evidence](redump-gamecube-ps2-wii-qualification.md)
+records exact public membership, alternate-export binary checksum comparison,
+PS2 cue reconciliation, measured floors and signed publication. All three passed
+isolated ROMD discovery, reviewed import, exact field/byte preservation (including
+file sizes above 4 GiB), unchanged checks, outage retention and recovery. This
+completes batch 5 in catalog scope; compressed game-image conversion and emulator
+launch are separate work. No additional systems or rollout automation were enabled.
