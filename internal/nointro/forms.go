@@ -84,6 +84,9 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 	if c.ProviderSystemID == "24" && c.ExpectedName == "Nintendo - Nintendo 64 (BigEndian)" {
 		selectorName = "Nintendo - Nintendo 64"
 	}
+	if c.ProviderSystemID == "45" && c.ExpectedName == "Nintendo - Nintendo Entertainment System (Headered)" {
+		selectorName = "Nintendo - Nintendo Entertainment System"
+	}
 	identity := false
 	for _, o := range options.FindAllStringSubmatch(content, -1) {
 		a, err := attrs(o[1])

@@ -75,5 +75,16 @@
       "minimumGames": 1150,
       "minimumRoms": 1150
     }
+  },
+  "no-intro/nes/standard": {
+    "systemId": "nes",
+    "provider": "no-intro",
+    "providerSystemId": "45",
+    "representation": "standard",
+    "expectedName": "Nintendo - Nintendo Entertainment System (Headered)",
+    "validation": {
+      "minimumGames": 7000,
+      "minimumRoms": 7000
+    }
   }
 }

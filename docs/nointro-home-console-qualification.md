@@ -1,10 +1,9 @@
 # Home console batch qualification
 
 Recorded 2026-09-18 UTC. Batch 2 targets NES, Genesis and Nintendo 64.
-Genesis and N64 passed real acquisition and independent public database
-reconciliation. NES is not yet qualified or enabled: official Standard DAT and
-database export pages report that the requested file is temporarily unavailable
-and queued. Do not represent the entire batch as complete.
+All three passed real acquisition and independent public database reconciliation.
+NES exports were initially queued upstream, then became available during the
+rollout. Qualification completed before its production definition was added.
 
 ## Reviewed representations
 
@@ -18,9 +17,9 @@ All exposed inclusion categories, regions and languages are included, including
 nodump and untagged MIA where available. No local filtering changes the DAT.
 
 NES ID 45's reviewed form labels format 0 Headered and format 1 Headerless.
-Prepared form support selects Headered and header_plugin=0 (Ignore). Its final
-DAT header, contents and database membership must be verified before adding a
-production definition. FDS is outside this scope.
+Prepared form support selects Headered and header_plugin=0 (Ignore). Its verified exact DAT header is
+`Nintendo - Nintendo Entertainment System (Headered)`, explicitly mapped from
+the unsuffixed selector label. FDS is outside this scope.
 
 ## Measured evidence
 
@@ -69,8 +68,33 @@ RSS and authenticated restoration. `mise run check` passes race tests, formattin
 vet, workflow lint and builds. Final measured-definition local acquisition passed
 for both systems with the hashes above. The initial N64 attempt failed closed
 because its header includes BigEndian; the explicit selector/header mapping fixed
-that mismatch. NES remains blocked by upstream availability, not a waived gate.
+that mismatch. NES passed after its upstream exports became available; the gate was not waived.
 
 Production publication and isolated ROMD acceptance are recorded separately below
 when completed. This qualification does not claim ROM ingestion, normalization,
 emulator/hardware acceptance, a real changed revision or a scheduled observation.
+
+
+## NES qualification after upstream regeneration
+
+The available Headered DAT version `20260918-071113` has 7,660 entries and
+7,662 files in 3,920,005 bytes. SHA-256:
+`d619acb8dc082ae8b9acd56c116627e8a67211de8f97d59061578c88f4e82300`.
+It retains 16 nodump and 18 baddump files; 7,645 names end in `.nes` and one
+in `.sav`, with undumped names left unchanged. Floors are 7,000 entries/files.
+
+The independent database export has the same version and is 16,411,568 bytes,
+SHA-256 `c5e84145d7dc29b4d50ce074c63b596ec819f565aba6bd4fa21127d8a230952a`.
+Of 7,685 public archive IDs, 25 explicitly have `dat="0"`; the remaining 7,660
+exactly match the DAT. There are zero missing/extra IDs or dumped-file size/hash
+mismatches. The documented limits apply to the compressed response and expanded
+XML separately; the database export fits the 32 MiB expanded qualification bound.
+
+Excluded IDs: `0022`, `0023`, `3125`, `3175`, `3284`, `3916`, `3940`, `3952`,
+`4835`, `5100`, `5123`, `5131`, `5175`, `5331`, `5332`, `5333`, `5371`, `5543`,
+`5812`, `6099`, `6302`, `7217`, `7395`, `7872`, `8105`.
+
+NES has its own explicit publication variable. Synthetic tests reject a
+Headerless DAT under this Headered identity and a ByteSwapped DAT under N64's
+BigEndian identity. No application-side header stripping or byte-order conversion
+is introduced by this catalog release.
