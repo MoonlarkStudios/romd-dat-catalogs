@@ -2,8 +2,9 @@
 
 Recorded 2026-09-18 UTC. Scope: complete public Standard DATs for Game Boy,
 Game Boy Color and Game Boy Advance. Acquisition and public membership
-qualification passed locally. Public mirroring and ROMD application acceptance
-have not been performed for these additions.
+qualification passed locally. Game Boy is now publicly deployed and passed
+isolated ROMD acceptance. GBC/GBA await the next scheduled healthy Game Boy
+publication before enablement; see the production evidence below.
 
 ## Reviewed identities and selection
 
@@ -123,3 +124,65 @@ monotonic metadata versions, enable GB alone, and verify its signed public
 candidate plus ROMD discovery/review/activation/failure retention. Observe the
 next scheduled healthy check before enabling GBC/GBA. Do not reset the existing
 publisher or mark the remaining expansion batches as qualified.
+
+
+## Game Boy production rollout and acceptance
+
+Verified 2026-09-18 UTC. Tooling [PR #21](https://github.com/MoonlarkStudios/romd-dat-catalogs/pull/21)
+merged at `98988f0785d5119fb6bb376cbc272a8c55f5c608` after CI passed.
+Data [PR #4](https://github.com/MoonlarkStudios/romd-dat-data/pull/4) pins both
+workflow references to that exact commit. `NOINTRO_GB_PUBLISH_ENABLED=true`;
+GBC and GBA variables remain unset/disabled.
+
+[Production run 35306019995](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/35306019995)
+passed acquisition, immutable Git export, signing, asset verification, Pages
+publication and deployed restoration. Independently authenticated local
+`catalogs` and `candidate` commands verified publication **3022**, registry schema
+**3**, and the original pinned root. Game Boy is healthy with successful check
+`2026-09-18T04:13:31.54340199Z`; counts, bytes and hash exactly match the local
+qualification above. PSX and SNES are also healthy. GBC/GBA definitions are present
+but neither has a published snapshot artifact, and ROMD does not advertise them
+as available subscriptions.
+
+Application acceptance used a separate Docker project with fresh PostgreSQL
+and data volumes, the existing local admin/worker development images, and a fresh
+admin frontend build. Existing development containers/data were untouched.
+This is split-host local acceptance, not a NAS deployment or new standard image
+build. No application source changes were needed.
+
+Verified:
+
+1. The browser directory advertises GB, PSX and SNES subscriptions. GBC/GBA
+   remain bring-your-own-DAT systems.
+2. Add Game Boy, choose No-Intro, and review the signed document: 2,332 added
+   entries and files, version `20260915-022607`, and four BIOS entries.
+3. Approve in the browser; processing finishes and the source becomes Active
+   with 2,332 entries. Initial review is not activation.
+4. A repeated check reports UpToDate. Database inspection shows one DAT version,
+   2,332 entries, 2,332 files and one import job.
+5. Inject an unreachable publisher URL into the isolated admin. The browser
+   reports that update availability has not been verified and offers Retry
+   availability. Download installed DAT still returns HTTP 200.
+6. Through ordinary test-account OAuth, POST the catalog enrollment check
+   (`/api/dat-subscriptions/check`). It returns CheckFailed with the message that
+   installed catalogs are unchanged and the check can be retried. The active
+   DAT download is 969,988 bytes and matches the qualification SHA-256 exactly.
+7. Restore the real publisher URL and repeat the enrollment check. It returns
+   UpToDate with a null error message; the active download still matches exactly,
+   and there remains one DAT version and one import job.
+
+The first API probe used the older per-DAT subscription-check endpoint; during
+publisher unavailability it returned DatSubscription.Unavailable (HTTP 400)
+before fetching. The successful CheckFailed/recovery evidence above is for the
+catalog-enrollment endpoint. The UI's availability error is not evidence that
+it displayed the enrollment CheckFailed message.
+
+`mise run check` and GitHub publisher CI passed. The admin frontend build passed
+with the existing SignalR annotation and large-bundle warnings. No backend suite,
+ROM import, console launch, hardware, or changed real GB revision was exercised
+in this rollout. The original reader/root/cache contracts were retained.
+
+Next gate: observe a subsequent **scheduled** healthy GB acquisition, then enable
+GBC/GBA and perform their public and application acceptance. A manual second run
+must not be represented as the scheduled observation. An authorized hourly follow-up will verify that gate, complete GBC/GBA
+rollout and acceptance, and stop when batch 1 is complete.
