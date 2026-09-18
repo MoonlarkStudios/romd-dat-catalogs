@@ -6,9 +6,10 @@ additional catalogs. No new catalog is enabled by this document.
 Batch 1 implementation and local qualification are now recorded in
 [Game Boy family qualification](nointro-handheld-qualification.md). All three
 complete-public acquisitions and database membership comparisons passed.
-Game Boy is live and its isolated ROMD acceptance passed. GBC/GBA public
-enablement and application acceptance await the next scheduled healthy Game Boy
-publication.
+All three are now publicly deployed and passed isolated ROMD catalog acceptance.
+Batch 1 is complete within that scope. The operator authorized immediate GBC/GBA
+release after Game Boy acceptance, superseding the scheduled-observation gate;
+no scheduled handheld check is claimed. Batch 2 (NES, Genesis, N64) is next.
 
 ## SNES closeout
 
@@ -90,8 +91,9 @@ not a claim that deferred systems cannot work.
 2. Acquire one complete official document with the reviewed inclusion policy.
    Record version, bytes, hash, counts, nodump/baddump handling and exclusions.
    Reconcile eligible public membership where available, as for SNES; overview
-   counters alone are not exact acceptance counts. Establish the redistribution
-   scope for each addition; the recorded SNES approval is scoped to SNES.
+   counters alone are not exact acceptance counts. Standing operator approval
+   covers all Redump and No-Intro catalogs; preserve bytes and notices as
+   recorded in `AGENTS.md`.
 3. Set measured anomaly floors and prove the existing 16 MiB input / 32 MiB
    expanded limits suffice. If not, design and test bounded capacity changes
    before enrollment. Retain exact bytes and notices.
@@ -117,6 +119,7 @@ not a claim that deferred systems cannot work.
    Pause a failing catalog and retain its working artifact; a genuine upstream
    version change is recorded when available, not fabricated to close a gate.
 
-The next implementation slice is Game Boy qualification plus the smallest
-shared-provider batch change needed for batch 1. It does not require a new
-scheduler, browser automation, full daily-pack downloads or a trust-root reset.
+The next implementation slice is batch 2 qualification: NES representation,
+Genesis provider identity and N64 byte order, followed by complete-public
+reconciliation and explicit rollout. None is enabled yet. Reuse the deployed
+shared-provider batch workflow and existing trust root.

@@ -2,9 +2,9 @@
 
 Recorded 2026-09-18 UTC. Scope: complete public Standard DATs for Game Boy,
 Game Boy Color and Game Boy Advance. Acquisition and public membership
-qualification passed locally. Game Boy is now publicly deployed and passed
-isolated ROMD acceptance. GBC/GBA await the next scheduled healthy Game Boy
-publication before enablement; see the production evidence below.
+qualification passed locally. All three are publicly deployed and passed
+isolated ROMD catalog acceptance. Batch 1 is complete within that scope; see
+the production evidence below.
 
 ## Reviewed identities and selection
 
@@ -182,7 +182,64 @@ with the existing SignalR annotation and large-bundle warnings. No backend suite
 ROM import, console launch, hardware, or changed real GB revision was exercised
 in this rollout. The original reader/root/cache contracts were retained.
 
-Next gate: observe a subsequent **scheduled** healthy GB acquisition, then enable
+Original gate after the canary: observe a subsequent **scheduled** healthy GB acquisition, then enable
 GBC/GBA and perform their public and application acceptance. A manual second run
 must not be represented as the scheduled observation. An authorized hourly follow-up will verify that gate, complete GBC/GBA
-rollout and acceptance, and stop when batch 1 is complete.
+rollout and acceptance, and stop when batch 1 is complete. The immediate-release
+authorization below superseded this wait, and that follow-up is paused.
+
+
+## Full family production rollout and acceptance
+
+Verified 2026-09-18 UTC. After reviewing the working Game Boy canary, the operator
+explicitly authorized releasing GBC/GBA immediately. This supersedes the scheduled
+observation gate; no scheduled handheld check is claimed. Both remaining
+`NOINTRO_GBC_PUBLISH_ENABLED` and `NOINTRO_GBA_PUBLISH_ENABLED` variables are true.
+The tooling pin and original trust root are unchanged. The hourly rollout
+follow-up was paused before release and remains paused now that batch 1 is complete.
+
+The first [run 35306831473](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/35306831473)
+successfully published signed metadata **3023**, but all four No-Intro acquisitions
+failed. GB/SNES retained their working artifacts; GBC/GBA had no artifact and ROMD
+correctly offered no subscription. Workflow success was not treated as acquisition
+success. A local complete GBC/GBA re-acquisition passed with the original hashes.
+The underlying first-run acquisition failure was not diagnosed; no known root cause
+or permanent workaround is claimed.
+
+A single fresh-runner [retry 35307280421](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/35307280421)
+then passed. Independent `distribution catalogs` verification authenticated
+publication **3024**, schema **3**, with healthy PSX, SNES, GB, GBC and GBA.
+All five record successful acquisition at `2026-09-18T04:33:30.684908338Z`.
+Independent `distribution candidate` checks verified each new system's identity
+and exact bytes. GBC/GBA counts, sizes, versions and hashes match the qualification
+tables above. Their immutable data commit is
+`4e1561966a839855e73d19089d91d9176b2292f2`; signed change events are present.
+
+The same isolated ROMD Docker project used for GB acceptance was resumed:
+
+1. Added GBA/GBC systems and selected their newly advertised No-Intro sources.
+   Browser reviews showed 3,790 GBA entries/files, version `20260915-015644`,
+   and 2,678 GBC entries/files, version `20260917-063400` (six/seven BIOS entries).
+2. Approved each reviewed import in the browser. Both finished processing and
+   displayed Active with the expected count and version.
+3. Checked all three enrollment subscriptions through ordinary test-account
+   OAuth. Each returned UpToDate with a null error message, and its active DAT
+   download matched the signed length and SHA-256 exactly.
+4. Temporarily configured only the isolated admin with an unreachable publisher.
+   All three enrollment checks returned CheckFailed while each installed DAT
+   remained downloadable with identical bytes and hashes.
+5. Restored the real publisher and checked all three again. Each returned
+   UpToDate with a null error message and zero consecutive failures. Active
+   downloads still matched exactly.
+6. Database inspection before and after failure/recovery confirmed three Active
+   DAT versions, 8,800 entries, 8,800 files and three import jobs. Rechecking and
+   retrying did not create duplicate imports or versions.
+
+The successful production workflow ran `mise run check`, definition validation,
+asset-hash verification and deployed signature-chain restoration. Existing GitHub
+Action Node-20 deprecation/forced-Node-24 and upcoming runner-image notices remain;
+they did not fail validation. No application source changed and no new backend
+suite, ROM import, emulator/hardware launch, NAS deployment or real changed-version
+pair was exercised. The existing frontend-build warnings noted above remain.
+
+Batch 2 (NES, Genesis, N64) remains planned and disabled pending its own qualification.
