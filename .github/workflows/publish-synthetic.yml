@@ -68,6 +68,9 @@ jobs:
         run: ./bin/publisher --output output fixtures/manifest.json
       - name: Acquire enabled catalogs with shared provider pacing
         env:
+          SATURN_ENABLED: ${{ vars.REDUMP_SATURN_PUBLISH_ENABLED }}
+          SEGACD_ENABLED: ${{ vars.REDUMP_SEGACD_PUBLISH_ENABLED }}
+          DC_ENABLED: ${{ vars.REDUMP_DC_PUBLISH_ENABLED }}
           PSX_ENABLED: ${{ vars.REDUMP_PSX_PUBLISH_ENABLED }}
           SNES_ENABLED: ${{ vars.NOINTRO_SNES_PUBLISH_ENABLED }}
           GB_ENABLED: ${{ vars.NOINTRO_GB_PUBLISH_ENABLED }}
@@ -91,6 +94,9 @@ jobs:
             fi
           }
           select_catalog redump/psx/discs "$PSX_ENABLED"
+          select_catalog redump/saturn/discs "$SATURN_ENABLED"
+          select_catalog redump/segacd/discs "$SEGACD_ENABLED"
+          select_catalog redump/dc/discs "$DC_ENABLED"
           select_catalog no-intro/snes/standard "$SNES_ENABLED"
           select_catalog no-intro/gb/standard "$GB_ENABLED"
           select_catalog no-intro/gbc/standard "$GBC_ENABLED"
