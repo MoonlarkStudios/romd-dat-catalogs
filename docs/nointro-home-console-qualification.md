@@ -179,5 +179,5 @@ or scheduled observation was exercised. Existing GitHub Action Node-20 deprecati
 acquisition and post-deployment verification failures above are retained in this
 record rather than claimed as passing runs.
 
-Batch 3 (Master System, Game Gear, PC Engine/TurboGrafx-16 and 32X) remains planned
-and disabled. No recurring rollout automation was created or resumed.
+Batch 3 (Master System, Game Gear, PC Engine/TurboGrafx-16 and 32X) subsequently
+completed its [qualification and rollout](nointro-batch-three-qualification.md). No recurring rollout automation was created or resumed.

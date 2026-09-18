@@ -4,7 +4,7 @@ Companion publisher for ROMD's planned one-click No-Intro and Redump DAT
 subscriptions. Complete upstream catalogs come first; future 1G1R filtering
 belongs in ROMD's library layer.
 
-**Current status: eight signed catalogs are live: PSX, SNES, Game Boy, Game Boy Color, Game Boy Advance, NES (Headered), Genesis and N64 (BigEndian).**
+**Current status: 12 signed catalogs are live: PSX, SNES, Game Boy, Game Boy Color, Game Boy Advance, NES (Headered), Genesis, N64 (BigEndian), Master System, Game Gear, PC Engine/TurboGrafx-16 and 32X.**
 See the [SNES closeout and expansion plan](docs/catalog-expansion-plan.md).
 The Game Boy family has [passed acquisition, public membership and isolated
 ROMD catalog acceptance](docs/nointro-handheld-qualification.md).
@@ -22,7 +22,9 @@ library](docs/redump-adapter.md) has a qualified PSX workflow path. The
 following public-catalog reconciliation and operator redistribution approval.
 The Game Boy family is enabled after complete-public qualification and application
 acceptance. [NES, Genesis and N64](docs/nointro-home-console-qualification.md)
-are also live after complete-public qualification. These are the eight enabled
+are also live after complete-public qualification. [Master System, Game Gear,
+PC Engine/TurboGrafx-16 and 32X](docs/nointro-batch-three-qualification.md) passed
+qualification, publication and isolated ROMD acceptance. These are the 12 enabled
 real catalogs; synthetic fixtures remain
 separate. An operator-driven [candidate reader](docs/romd-candidate.md)
 is available for the first ROMD review integration. Do not enable production

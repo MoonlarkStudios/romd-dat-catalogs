@@ -15,7 +15,10 @@ no scheduled handheld check is claimed.
 NES (Headered), Genesis and N64 (BigEndian). All three are now publicly deployed
 and passed isolated ROMD import, unchanged-check, failure-retention and recovery
 acceptance. Batch 2 is complete within catalog scope.
-Batch 3 (Master System, Game Gear, PC Engine/TurboGrafx-16, 32X) is next.
+[Batch 3 qualification and rollout](nointro-batch-three-qualification.md) covers
+Master System, Game Gear, PC Engine/TurboGrafx-16 and 32X. All four are publicly
+deployed and passed the same isolated ROMD acceptance gates. Batch 3 is complete
+within catalog scope. Batch 4 (Saturn, Sega CD, Dreamcast) is next.
 
 ## SNES closeout
 
@@ -125,8 +128,9 @@ not a claim that deferred systems cannot work.
    Pause a failing catalog and retain its working artifact; a genuine upstream
    version change is recorded when available, not fabricated to close a gate.
 
-The next implementation slice is batch 3 qualification: Master System, Game
-Gear, PC Engine/TurboGrafx-16 and 32X. Verify exact provider identities, complete
-public membership, file representations and measured floors before enablement.
-None is enabled yet. Reuse the deployed shared-provider batch workflow and
-existing trust root.
+The next implementation slice is batch 4 qualification: Saturn, Sega CD and
+Dreamcast. Verify exact Redump identities, complete public membership, track and
+multi-disc representations, archive limits and measured floors before enablement.
+None of batch 4 is enabled yet. Reuse the signed publication workflow and existing
+trust root. The operator authorized immediate batch-2 and batch-3 rollout after
+qualification; no scheduled observation is claimed for those batches.
