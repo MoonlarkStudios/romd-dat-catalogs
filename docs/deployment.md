@@ -1,3 +1,8 @@
+> Current reader contract: new tooling publishes DAT-only schema 3 definitions.
+> ROMD now owns application reference data. Use `distribution catalogs` for
+> discovery and coordinate ROMD's pinned reader before updating the live workflow.
+> Historical publication evidence below describes the earlier reference-data format.
+
 # Signed catalog deployment
 
 The companion repository contains Go tooling, workflows, fixtures, and platform
@@ -293,7 +298,7 @@ root-key, or ROMD database migration is required by this change.
    reviewed commit on `main`; a squash merge may have a different SHA from the PR
    head. Build that revision with `mise install` and `mise run check`.
 2. **Hand the reader contract to the ROMD application owner.** Package/deploy the
-   resulting `bin/distribution` wherever ROMD runs `reference-data` or `candidate`.
+   resulting `bin/distribution` wherever ROMD runs `catalogs` or `candidate`.
    If a consumer implements verification itself, it must accept the new registry
    provider and immutable path. Preserve its independently pinned public root,
    existing TUF cache, publisher identity, and installed DATs. Never reset cached
@@ -315,7 +320,7 @@ root-key, or ROMD database migration is required by this change.
    deployed result to verify its signature chain. It must advance existing metadata
    versions. The normal daily schedule then uses the same path.
 5. **Verify the client-facing result before calling the slice live.** Use the
-   updated reader's `reference-data` and `candidate --catalog no-intro/snes/standard
+   updated reader's `catalogs` and `candidate --catalog no-intro/snes/standard
    --name 'Nintendo - Super Nintendo Entertainment System'` against the existing
    Pages URL and pinned root, using its normal cache and a fresh output directory.
    Check system `snes`, the published document hash/size, and a full immutable Git

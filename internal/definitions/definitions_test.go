@@ -9,7 +9,7 @@ import (
 
 func fixture(t *testing.T) []byte {
 	t.Helper()
-	r, e := LoadSource("../../definitions")
+	r, e := Load("testdata/schema-2.json")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -35,7 +35,7 @@ func TestStrictDefinitions(t *testing.T) {
 		"unknown":             bytes.Replace(good, []byte(`"name":`), []byte(`"extra":true,"name":`), 1),
 		"case alias":          bytes.Replace(good, []byte(`"name":`), []byte(`"Name":`), 1),
 		"missing":             bytes.Replace(good, []byte(`"provider": "redump",`), nil, 1),
-		"unsupported version": bytes.Replace(good, []byte(`"schemaVersion": 2`), []byte(`"schemaVersion": 3`), 1),
+		"unsupported version": bytes.Replace(good, []byte(`"schemaVersion": 2`), []byte(`"schemaVersion": 99`), 1),
 		"fraction":            bytes.Replace(good, []byte(`10000`), []byte(`1.5`), 1),
 		"null limits":         bytes.Replace(good, []byte(`10000`), []byte(`null`), 1),
 		"unknown limit":       bytes.Replace(good, []byte(`"minimumGames"`), []byte(`"minGames"`), 1),
@@ -146,7 +146,7 @@ func TestDeterministicSerialization(t *testing.T) {
 }
 
 func TestNoIntroRegistryIdentity(t *testing.T) {
-	r, err := LoadSource("../../definitions")
+	r, err := Load("testdata/schema-2.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestNoIntroRegistryIdentity(t *testing.T) {
 		}
 	}
 	r.Catalogs["no-intro/snes/standard"] = c
-	prior, err := LoadSource("../../definitions")
+	prior, err := Load("testdata/schema-2.json")
 	if err != nil {
 		t.Fatal(err)
 	}

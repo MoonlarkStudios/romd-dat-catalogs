@@ -39,7 +39,7 @@ func attrs(raw string) (map[string]string, error) {
 	return a, nil
 }
 
-// Policy v1: complete public standard, default representation, non-merged,
+// Policy v2: complete public standard, default representation, non-merged,
 // canonical names, every inclusion category, all regions/languages/specials.
 // The live Aftermarket checkbox's value is literally 0; presence selects it.
 func completeSelection() url.Values {
@@ -93,6 +93,17 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 		return nil, bad
 	}
 	values := completeSelection()
+	// Reviewed per-system controls: GBC has no collection selector; GBA
+	// exposes numbered, x-ROM and z-ROM categories instead of adult filtering.
+	if c.ProviderSystemID == "47" {
+		delete(values, "collection")
+	}
+	if c.ProviderSystemID == "23" {
+		delete(values, "inc_adult")
+		values.Set("numbered", "0")
+		values.Set("inc_xroms", "1")
+		values.Set("inc_zroms", "1")
+	}
 	found := map[string]int{}
 	submit := ""
 	for _, i := range inputs.FindAllStringSubmatch(content, -1) {
@@ -107,6 +118,11 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 			return nil, bad
 		}
 		name := a["name"]
+		// Some systems expose a missing-in-action filter. Include these records
+		// with canonical names; legacy forms without this control remain valid.
+		if name == "inc_mia" {
+			values.Set("inc_mia", "1")
+		}
 		if prepareName.MatchString(name) && a["type"] == "submit" && a["value"] == "Prepare" {
 			if submit != "" {
 				return nil, bad

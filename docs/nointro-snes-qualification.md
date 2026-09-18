@@ -8,7 +8,11 @@ SNES investigation. No ROMD application checkout was changed.
 **Status: the approved SNES mirror is live through signed Git/Pages/RSS publication
 as of 2026-09-07 UTC.** The public DAT selection is reconciled and
 redistribution/retention is operator-approved. Synthetic tests, real production
-evidence, and application acceptance are distinguished below.
+evidence, and application acceptance are distinguished below. The
+[September 18 closeout](catalog-expansion-plan.md) records current healthy
+publication, a subsequent real document revision, and the separate ROMD
+acceptance report. Statements below about unobserved changes and unverified
+application acceptance describe the original September 7 evidence.
 
 ## Official acquisition
 

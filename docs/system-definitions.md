@@ -1,176 +1,45 @@
-# Shared reference definitions
+# Catalog definitions and ROMD identities
 
-The tooling repository owns the editable source, split by category:
+ROMD owns its built-in application reference catalog, including system names,
+compact labels, companies, regions, languages, ratings, and artwork references.
+This repository owns DAT acquisition and signed updates.
 
-```text
-definitions/
-  systems.json
-  companies.json
-  catalogs.json
-  regions.json
-  languages.json
-```
+`definitions/catalogs.json` maps each stable publisher catalog ID to a ROMD
+`systemId`, an upstream provider identity, representation, and validation limits.
+These mappings are explicit. Providers must not create or reassign canonical
+ROMD identities as a side effect of discovery or ingestion.
 
-Each file is a dictionary, without a repeated ID inside each entry. The loader
-assembles all five files into one schema-versioned snapshot. Keys are
-stable IDs; catalog `systemId` references our system ID, while
-`providerSystemId` selects the provider's distinct identifier. The registry defines the PSX disc catalog and the gated No-Intro SNES
-standard catalog (`snes`, Datomatic `49`). Emulator configuration, BIOS requirements,
-and ROMD database IDs/user settings do not belong in these definitions.
+`definitions/system-keys.json` is a pinned copy of ROMD's
+`reference-data/dist/system-keys.json`. To add a canonical system, author it in
+ROMD, regenerate the export, and copy that reviewed export here. A catalog may
+only reference a key in this file. This check constrains publisher authoring;
+it does not mean older ROMD clients must know every published key. Receivers
+show an unresolved system until an explicit server registration resolves it.
 
-Go implements acquisition and validation behavior. Data selects an implemented
-provider; it cannot supply arbitrary URLs, scripts, or plugins. Provider endpoint construction, transport, resource limits, and ZIP/XML parsing
-remain in their adapters. No platform routing is hard-coded in Go. Count floors are anomaly checks, not proof of completeness.
+## Signed format
 
-```sh
-mise run check
-./bin/distribution validate-definitions --definitions definitions
-./bin/publisher --output output --definitions definitions \
-  --catalog redump/psx/discs
-```
-
-The registry loader rejects duplicate keys at any depth (including escaped
-spellings), unknown or incorrectly cased fields, missing/null fields, unsupported
-schema versions, invalid IDs, blank labels, dangling system references, unknown
-providers/representations, conflicting upstream mappings, and nonpositive count
-floors. Input size and nesting are bounded. JSON dictionaries serialize in sorted
-key order; no behavior depends on insertion order. Catalog IDs must equal
-`provider/systemId/representation`, which also determines the stable DAT path.
-The source loader requires all five files, rejects unexpected JSON categories,
-and preserves duplicate keys until strict validation rather than silently losing
-them during assembly. Each file and the complete snapshot are size-bounded.
-The source format is owned by the loader; the generated snapshot carries
-`schemaVersion: 2`. Schema-1 published snapshots remain readable and can be
-restored before upgrading; a downgrade is rejected. Older readers reject schema 2
-rather than accepting a partial definition set. Upgrade consumer binaries before
-expecting them to consume the new snapshot. Files from different
-published versions are never downloaded and mixed by consumers.
-CI validates the committed definition through tests; publication explicitly
-validates definitions before restoring or acquiring any source.
-
-Publication selection is separate: the workflow selects
-`redump/psx/discs` with `REDUMP_PSX_PUBLISH_ENABLED=true` and
-`no-intro/snes/standard` with `NOINTRO_SNES_PUBLISH_ENABLED=true`. The latter
-remains disabled pending [reviewed No-Intro rollout](nointro-snes-qualification.md). Adding a
-catalog definition does not opt it into acquisition or public mirroring.
-Unknown selection or malformed definitions fails before acquisition. The old
-hardcoded `redump-psx` command has been replaced by `--catalog`.
-
-## Signed distribution copy
-
-Git-backed staging with `--definitions definitions` includes the
-same registry in the signed catalog index and in the TUF `reference-data.json` target.
-The data repository's Pages artifact also exposes `/reference-data.json` for inspection.
-This alias alone is not authenticated: consumers must verify it as a TUF target,
-or use the identical definitions from the verified catalog index. Definitions
-are not copied into the data branch and metadata refreshes create no data commit.
-The workflow and registry come from the same pinned tooling checkout.
-
-Defined systems are not necessarily available catalogs: availability comes from
-the published snapshot and its health. The existing synthetic fixture remains
-explicitly separate and has no invented real-system mapping.
-
-Restoration preserves the authenticated registry in disposable local state.
-Acquisition and signing reject removal or reassignment of established catalog
-IDs, provider identifiers, representations, and expected headers. System IDs
-cannot be removed. Display labels and validation floors may change through code
-review. An intentional identity migration needs a separate reviewed change;
-there is no automatic migration override or registry migration engine.
-
-## ROMD consumption
-
-`distribution candidate` still binds the exact catalog ID and expected header.
-When definitions are present, it also checks their catalog binding and emits the
-shared `systemId` in `candidate.json`. Legacy signed publications remain readable
-without inferring a system identity. ROMD can consume a verified pinned registry
-and preserve its own database IDs and user settings; a newly published registry
-must not automatically rewrite those identities.
-
-This change supplies the shared contract and signed copy. It does not yet change
-ROMD's system seeding/enrollment UI or its existing PSX subscription selection.
-The live data workflow pins tooling revision
-`249ac9dd0bb25fd9ba2faf9eb9795ab963a16226`. The published snapshot is available at
-https://moonlarkstudios.github.io/romd-dat-data/reference-data.json; verify its TUF
-target before consuming it. Future upgrades must update both caller pins after
-review. Public PSX mirroring still requires upstream redistribution qualification.
-
-## Company identities and grouping
-
-The `companies` dictionary starts with the 15 distinct manufacturer labels in
-ROMD's existing `src/Romd.Persistence/PlatformSeeder.cs`. This preserves existing
-application terminology; it is not a researched legal-entity or corporate-history
-registry. No parent-company, successor, developer, or publisher relationships
-are inferred from those labels. Initial company aliases are empty; add them only
-when their meaning has been reviewed.
-
-Each company has a stable dictionary key, a display `name`, and an `aliases`
-array. A system's `manufacturerIds` references those keys (`psx` references
-`sony`). The array supports multiple explicitly attributed manufacturers; an
-empty array means unspecified, as appropriate for a category such as Arcade.
-It does not mean every company manufactured that system. Other relationship
-roles can later reference the same company IDs without overloading manufacturer.
-
-Validation rejects unknown/duplicate manufacturer references, invalid company
-IDs, missing/null arrays, blank labels, and case-insensitive collisions between
-company names and aliases, including aliases that duplicate their own name.
-Established company IDs cannot disappear, and changing an existing system's
-manufacturer set requires an explicit reviewed migration. Reference order does
-not change the relationship. Display names and unambiguous aliases can evolve.
-Company data is part of the same signed `reference-data.json` copy and verified index;
-it is never maintained separately in the data repository.
-
-Schema version 1 was the first published signed reference-data snapshot.
-Schema version 2 expands its seed coverage.
-It prepares shared seed data and grouping identities; it does not yet
-replace ROMD's DB seeders, add a Fetch latest action, or implement grouping UI.
-Those consumers should preserve DB IDs/local edits and review changes against
-the last-applied shared version.
-
-## Complete ROMD seed migration (schema 2)
-
-The reviewed baseline is ROMD commit
-`a601c4e7da7d9e699a18237417f6d749bc0290c3`: `PlatformSeeder.cs`,
-`PlatformIds.cs`, and `SeedData/regions.json` / `languages.json`.
-The shared definitions preserve all 56 system short names, display names,
-manufacturer labels, 56 IGDB IDs, 20 system name aliases, 20 regions, and
-16 languages, including taxonomy sort orders and alias spelling. The seed-parity
-test compares every record against the frozen legacy layout in testdata.
-PSX uses ROMD's display name `PlayStation`; `Sony PlayStation` remains an alias.
-The Redump document header remains separately bound to `Sony - PlayStation`.
-
-Systems contain explicit `aliases` arrays and `providerMappings` dictionaries
-(provider ID to string identifier). Existing provider mappings cannot be removed
-or reassigned during ordinary publication. Empty collections are explicit.
-Regions use stable descriptive keys, such as `united-kingdom`, with `name`,
-`sortOrder`, and `aliases`. Language keys are their existing codes; each entry
-preserves `code`, `name`, `sortOrder`, and `aliases`. These keys are shared-data
-identities, not ROMD database primary keys.
-
-Names/aliases must resolve unambiguously within each category. System aliases
-also cannot shadow another system's stable ID. Language aliases may match their
-own code (the original seed has `En` for `en`); duplicate aliases within an entry
-and collisions with another entry are rejected. Companies retain their stricter
-name/alias rule. No taxonomy ID can disappear through ordinary publication.
-
-This registry describes systems even when no DAT is published for them. The only
-real catalog definition is still PSX; expanding reference seeds does not expand
-upstream acquisition or authorize public mirroring.
-
-### Read verified reference data without downloading DATs
+New publications use registry schema 3: `schemaVersion` and `catalogs` only.
+The signed index includes those definitions and TUF authenticates the
+`catalog-definitions.json` target. The reader supports schemas 1 and 2 solely
+to verify and restore existing signed publications. Frozen legacy test fixtures
+are not authoring sources and must not be edited to add new systems.
 
 ```sh
-./bin/distribution reference-data --root trust/1.root.json \
+./bin/distribution catalogs --root trust/1.root.json \
   --site https://moonlarkstudios.github.io/romd-dat-data \
-  --cache .reference-cache --out verified-reference
+  --out /tmp/romd-catalogs
 ```
 
-The new output directory contains `reference-data.json` and `catalog.json`.
-The former is exactly the definitions embedded in the latter's verified signed
-index. The index carries its publication version and actual catalog availability;
-reference-data hashes identify meaningful seed changes independently of routine
-metadata refreshes. Keep the trust root independently pinned and retain the cache.
-This command shares the candidate reader's cache lock and verification rules,
-rejects a publication without reference data, and never fetches a DAT or the
-unsigned Pages alias. It does not overwrite an existing output directory.
-An operator-supplied `--bundle` can replace `--site` for isolated signed demos.
-ROMD must still validate/apply changes against its own local state.
+The output directory contains verified `catalog.json` and
+`catalog-definitions.json`. This command downloads no DAT. The separate
+`candidate` command verifies the selected DAT artifact. RSS advertises updates;
+TUF and the verified index remain the trust boundary.
+
+Build and test with `mise run check`. Coordinate the immutable reader pin in
+ROMD before adopting this tooling revision in the live data-site workflow.
+Pushing a tooling review branch does not publish a feed or enable a mirror.
+
+MAME metadata belongs in versioned imported catalogs. Machines, devices, BIOS
+dependencies, software lists, items, and parts are distinct records. Map upstream
+identities explicitly to ROMD systems; never turn machine names into an exhaustive
+application system registry.
