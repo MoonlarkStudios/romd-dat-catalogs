@@ -408,7 +408,7 @@ func TestPacingAcrossCatalogs(t *testing.T) {
 
 func TestHomeConsoleSelections(t *testing.T) {
 	for _, tc := range []struct{ key, id, name string }{
-		{"nes", "45", "Nintendo - Nintendo Entertainment System"},
+		{"nes", "45", "Nintendo - Nintendo Entertainment System (Headered)"},
 		{"genesis", "32", "Sega - Mega Drive - Genesis"},
 		{"n64", "24", "Nintendo - Nintendo 64 (BigEndian)"},
 	} {
@@ -418,6 +418,7 @@ func TestHomeConsoleSelections(t *testing.T) {
 			raw := strings.ReplaceAll(strings.ReplaceAll(selection(), "49", tc.id), catalog().ExpectedName, tc.name)
 			raw = regexp.MustCompile(`<input[^>]*name="collection"[^>]*>`).ReplaceAllString(raw, "")
 			if tc.key == "nes" {
+				raw = strings.ReplaceAll(raw, tc.name, "Nintendo - Nintendo Entertainment System")
 				raw = strings.Replace(raw, "</form>", `<input type="radio" name="header_plugin" value="0"><input type="radio" name="header_plugin" value="1"></form>`, 1)
 			}
 			if tc.key == "n64" {
@@ -448,6 +449,12 @@ func TestHomeConsoleSelections(t *testing.T) {
 			doc := bytes.ReplaceAll(bytes.ReplaceAll(document(), []byte("<id>49</id>"), []byte("<id>"+tc.id+"</id>")), []byte(catalog().ExpectedName), []byte(tc.name))
 			if _, _, err := Validate(doc, c); err != nil {
 				t.Fatal(err)
+			}
+			if tc.key == "nes" || tc.key == "n64" {
+				wrong := bytes.ReplaceAll(bytes.ReplaceAll(doc, []byte("(Headered)"), []byte("(Headerless)")), []byte("(BigEndian)"), []byte("(ByteSwapped)"))
+				if _, _, err := Validate(wrong, c); err == nil {
+					t.Fatal("wrong representation accepted")
+				}
 			}
 			if _, _, err := Validate(doc, catalog()); err == nil {
 				t.Fatal("wrong system document accepted")
