@@ -222,3 +222,176 @@ func TestNoIntroSelectionPauseAndRetry(t *testing.T) {
 		t.Fatal("restored retry deadline ignored")
 	}
 }
+
+type batchNoIntro struct {
+	ids   []string
+	retry string
+	crash bool
+}
+
+func (a *batchNoIntro) Acquire(_ context.Context, id string, c definitions.Catalog, stage string) (nointro.Result, error) {
+	a.ids = append(a.ids, id)
+	if a.crash && len(a.ids) == 2 {
+		return nointro.Result{}, fmt.Errorf("staging unavailable")
+	}
+	result := nointro.Result{Attempt: publisher.Attempt{CatalogID: id, ExpectedName: c.ExpectedName, SourceURL: sourceURL(c)}}
+	if a.retry != "" {
+		failure := "provider_backoff"
+		result.Attempt.Failure = &failure
+		result.Attempt.RetryAt = &a.retry
+	} else {
+		raw, err := os.ReadFile("../../fixtures/example.dat")
+		if err != nil {
+			return result, err
+		}
+		if err := os.Mkdir(stage, 0700); err != nil {
+			return result, err
+		}
+		path := filepath.Join(stage, "fixture.dat")
+		if err := os.WriteFile(path, bytes.ReplaceAll(raw, []byte("ROMD Synthetic Console"), []byte(c.ExpectedName)), 0600); err != nil {
+			return result, err
+		}
+		result.Attempt.Path = &path
+	}
+	return result, nil
+}
+
+func batchDefinitions(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	keys, err := os.ReadFile("../../definitions/system-keys.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "system-keys.json"), keys, 0600); err != nil {
+		t.Fatal(err)
+	}
+	registry, err := definitions.LoadSource("../../definitions")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, key := range []string{"gb", "gbc", "gba"} {
+		c := registry.Catalogs["no-intro/snes/standard"]
+		c.SystemID = key
+		c.ProviderSystemID = fmt.Sprint(100 + i)
+		c.ExpectedName = "Synthetic " + key
+		registry.Catalogs["no-intro/"+key+"/standard"] = c
+	}
+	raw, err := json.Marshal(registry.Catalogs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "catalogs.json"), raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	return dir
+}
+
+func TestBatchRoutingBackoffAndRetention(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "state")
+	var out bytes.Buffer
+	args := []string{"--output", root, "--definitions", batchDefinitions(t), "--catalog", "no-intro/gb/standard", "--catalog", "no-intro/gbc/standard", "--catalog", "no-intro/gba/standard"}
+	adapter := &batchNoIntro{}
+	if err := runWithAdapters(args, &out, &out, &captureAcquirer{}, adapter); err != nil {
+		t.Fatal(err)
+	}
+	before, err := publisher.LoadSnapshot(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(adapter.ids) != 3 || len(before.Catalogs) != 3 {
+		t.Fatal("batch routing incomplete")
+	}
+	for _, id := range adapter.ids {
+		if before.Catalogs[id].Artifact == nil {
+			t.Fatal("missing document", id)
+		}
+	}
+	adapter = &batchNoIntro{retry: time.Now().Add(72 * time.Hour).UTC().Format(time.RFC3339Nano)}
+	if err := runWithAdapters(args, &out, &out, &captureAcquirer{}, adapter); err != nil {
+		t.Fatal(err)
+	}
+	after, err := publisher.LoadSnapshot(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(adapter.ids) != 1 {
+		t.Fatal("requested provider after backoff")
+	}
+	for id, c := range after.Catalogs {
+		if c.RetryAt == nil || *c.RetryAt != adapter.retry || *c.Artifact != *before.Catalogs[id].Artifact {
+			t.Fatal("lost deadline or working catalog", id)
+		}
+	}
+	// A fresh process selecting only another catalog must still honor cooldown.
+	next := &batchNoIntro{}
+	if err := runWithAdapters(args[:6], &out, &out, &captureAcquirer{}, next); err != nil {
+		t.Fatal(err)
+	}
+	if len(next.ids) != 0 {
+		t.Fatal("forgot provider cooldown across processes")
+	}
+	// Pausing must not erase provider cooldown.
+	if err := runWithAdapters(append(args[:6:6], "--paused"), &out, &out, &captureAcquirer{}, next); err != nil {
+		t.Fatal(err)
+	}
+	paused, err := publisher.LoadSnapshot(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if paused.Catalogs["no-intro/gb/standard"].RetryAt == nil {
+		t.Fatal("pause erased cooldown")
+	}
+}
+
+func TestBatchPreflightAndAtomicFailure(t *testing.T) {
+	for _, tail := range [][]string{
+		{"--catalog", "no-intro/gb/standard", "--catalog", "missing"},
+		{"--catalog", "no-intro/gb/standard", "--pause-catalog", "no-intro/gb/standard"},
+	} {
+		adapter := &batchNoIntro{}
+		args := append([]string{"--output", filepath.Join(t.TempDir(), "state"), "--definitions", batchDefinitions(t)}, tail...)
+		var out bytes.Buffer
+		if err := runWithAdapters(args, &out, &out, &captureAcquirer{}, adapter); err == nil || len(adapter.ids) != 0 {
+			t.Fatal("invalid selection reached acquisition")
+		}
+	}
+	root := filepath.Join(t.TempDir(), "state")
+	adapter := &batchNoIntro{crash: true}
+	var out bytes.Buffer
+	args := []string{"--output", root, "--definitions", batchDefinitions(t), "--catalog", "no-intro/gb/standard", "--catalog", "no-intro/gbc/standard"}
+	if err := runWithAdapters(args, &out, &out, &captureAcquirer{}, adapter); err == nil {
+		t.Fatal("ignored staging error")
+	}
+	if _, err := os.Stat(filepath.Join(root, "current.json")); !os.IsNotExist(err) {
+		t.Fatal("partially published failed batch")
+	}
+}
+
+func TestUnselectedCatalogCooldownDoesNotBlockOtherProvider(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "state")
+	retry := time.Now().Add(time.Hour).UTC().Format(time.RFC3339Nano)
+	failure := "provider_backoff"
+	_, err := publisher.Publish(root, []publisher.Attempt{{CatalogID: "no-intro/snes/standard", ExpectedName: "Nintendo - Super Nintendo Entertainment System", SourceURL: nointro.SourceURL("49"), Failure: &failure, RetryAt: &retry}}, "https://example.invalid/", publisher.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	ni := &batchNoIntro{}
+	rd := &captureAcquirer{}
+	args := []string{"--output", root, "--definitions", batchDefinitions(t), "--catalog", "no-intro/gb/standard", "--catalog", "redump/psx/discs"}
+	if err := runWithAdapters(args, &out, &out, rd, ni); err != nil {
+		t.Fatal(err)
+	}
+	if len(ni.ids) != 0 || rd.calls != 1 {
+		t.Fatal("provider-wide cooldown was ignored or leaked to Redump")
+	}
+	state, err := publisher.LoadSnapshot(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := state.Catalogs["no-intro/gb/standard"]
+	if c.RetryAt == nil || *c.RetryAt != retry || c.Artifact != nil {
+		t.Fatal("new selection lost cooldown or invented content")
+	}
+}

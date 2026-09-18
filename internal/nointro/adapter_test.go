@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -303,5 +304,104 @@ func TestHTTPBoundariesAndPacing(t *testing.T) {
 	a := New()
 	if a.gap != 5*time.Second || a.client.Timeout != 30*time.Second {
 		t.Fatal("production bounds changed")
+	}
+}
+
+func TestMissingInActionSelection(t *testing.T) {
+	for _, controls := range []string{
+		`<input type="radio" name="inc_mia" value="1"><input type="radio" name="inc_mia" value="2"><input type="radio" name="inc_mia" value="0">`,
+		`<input type="radio" name="inc_mia" value="0">`,
+		`<input type="radio" name="inc_mia" value="1"><input type="radio" name="inc_mia" value="1">`,
+		`<input type="hidden" name="inc_mia" value="1">`,
+	} {
+		raw := strings.Replace(selection(), "</form>", controls+"</form>", 1)
+		values, err := prepareForm([]byte(raw), catalog())
+		if strings.Contains(controls, `value="2"`) {
+			if err != nil || values.Get("inc_mia") != "1" {
+				t.Fatal(values, err)
+			}
+		} else if err == nil {
+			t.Fatal("accepted ambiguous or incomplete MIA controls")
+		}
+	}
+}
+
+func TestReviewedHandheldForms(t *testing.T) {
+	for _, tc := range []struct{ key, id, name string }{{"gb", "46", "Nintendo - Game Boy"}, {"gbc", "47", "Nintendo - Game Boy Color"}, {"gba", "23", "Nintendo - Game Boy Advance"}} {
+		t.Run(tc.key, func(t *testing.T) {
+			c := catalog()
+			c.SystemID = tc.key
+			c.ProviderSystemID = tc.id
+			c.ExpectedName = tc.name
+			raw := strings.ReplaceAll(strings.ReplaceAll(selection(), "49", tc.id), catalog().ExpectedName, tc.name)
+			if tc.key == "gbc" {
+				raw = regexp.MustCompile(`<input[^>]*name="collection"[^>]*>`).ReplaceAllString(raw, "")
+			}
+			if tc.key == "gba" {
+				raw = regexp.MustCompile(`<input[^>]*name="inc_adult"[^>]*>`).ReplaceAllString(raw, "")
+				raw = strings.Replace(raw, "</form>", `<input type="radio" name="numbered" value="0"><input type="radio" name="inc_xroms" value="1"><input type="radio" name="inc_zroms" value="1"></form>`, 1)
+			}
+			values, err := prepareForm([]byte(raw), c)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.key == "gbc" && values.Has("collection") {
+				t.Fatal("invented collection control")
+			}
+			if tc.key == "gba" && (values.Get("numbered") != "0" || values.Get("inc_xroms") != "1" || values.Get("inc_zroms") != "1" || values.Has("inc_adult")) {
+				t.Fatal(values)
+			}
+			if _, err := prepareForm([]byte(raw), catalog()); err == nil {
+				t.Fatal("cross-system form accepted")
+			}
+			doc := bytes.ReplaceAll(bytes.ReplaceAll(document(), []byte("<id>49</id>"), []byte("<id>"+tc.id+"</id>")), []byte(catalog().ExpectedName), []byte(tc.name))
+			if _, _, err := Validate(doc, c); err != nil {
+				t.Fatal(err)
+			}
+			if _, _, err := Validate(doc, catalog()); err == nil {
+				t.Fatal("cross-system DAT accepted")
+			}
+		})
+	}
+}
+
+func TestPacingAcrossCatalogs(t *testing.T) {
+	var starts []time.Time
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		starts = append(starts, time.Now())
+		id := r.URL.Query().Get("s")
+		name := "Nintendo - Game Boy"
+		if id == "49" {
+			name = catalog().ExpectedName
+		}
+		switch (len(starts) - 1) % 4 {
+		case 0:
+			io.WriteString(w, strings.ReplaceAll(strings.ReplaceAll(selection(), "49", id), catalog().ExpectedName, name))
+		case 1:
+			w.Header().Set("Location", "/index.php?page=manager&s="+id+"&download=1")
+			w.WriteHeader(302)
+		case 2:
+			io.WriteString(w, manager)
+		case 3:
+			w.Write(bytes.ReplaceAll(bytes.ReplaceAll(document(), []byte("<id>49</id>"), []byte("<id>"+id+"</id>")), []byte(catalog().ExpectedName), []byte(name)))
+		}
+	}))
+	defer server.Close()
+	gap := 20 * time.Millisecond
+	a := newAdapter(server.URL, server.Client().Transport, gap)
+	for _, key := range []string{"snes", "gb"} {
+		c := catalog()
+		if key == "gb" {
+			c.SystemID = "gb"
+			c.ProviderSystemID = "46"
+			c.ExpectedName = "Nintendo - Game Boy"
+		}
+		result, err := a.Acquire(context.Background(), "no-intro/"+key+"/standard", c, filepath.Join(t.TempDir(), "input"))
+		if err != nil || result.Code != "" {
+			t.Fatal(result, err)
+		}
+	}
+	if len(starts) != 8 || starts[4].Sub(starts[3]) < gap-time.Millisecond {
+		t.Fatal("cross-catalog request pacing lost")
 	}
 }

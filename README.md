@@ -4,7 +4,11 @@ Companion publisher for ROMD's planned one-click No-Intro and Redump DAT
 subscriptions. Complete upstream catalogs come first; future 1G1R filtering
 belongs in ROMD's library layer.
 
-**Current status: signed PSX/synthetic distribution; No-Intro SNES acquisition in qualification.**
+**Current status: signed PSX and SNES distribution is live; SNES ROMD catalog acceptance is recorded.**
+See the [SNES closeout and expansion plan](docs/catalog-expansion-plan.md).
+Game Boy, Game Boy Color and GBA have [passed local acquisition and public
+membership qualification](docs/nointro-handheld-qualification.md); their public
+mirrors remain disabled pending rollout.
 [Public RSS](https://moonlarkstudios.github.io/romd-dat-data/feed.xml) ·
 [Deployment runbook](docs/deployment.md)
 
@@ -14,12 +18,10 @@ GitHub Pages. The live workflow stores complete uncompressed DATs in a
 separate public data repository and signs full-commit raw URLs. That repository
 also hosts Pages/RSS, calling a pinned reusable workflow from this tooling repo; routine Releases
 and recovery archives are no longer the storage model. The [Redump acquisition
-library](docs/redump-adapter.md) has a qualified PSX workflow path. No
-additional public upstream DAT mirrors are enabled.
-The [No-Intro SNES adapter](docs/nointro-snes-qualification.md) has demonstrated
-anonymous official acquisition and local publication; its public mirror remains
-gated on reviewed deployment after public-catalog reconciliation and operator
-redistribution approval. An operator-driven [candidate reader](docs/romd-candidate.md)
+library](docs/redump-adapter.md) has a qualified PSX workflow path. The
+[No-Intro SNES adapter](docs/nointro-snes-qualification.md) is also deployed,
+following public-catalog reconciliation and operator redistribution approval.
+These are the two enabled real catalogs; synthetic fixtures remain separate. An operator-driven [candidate reader](docs/romd-candidate.md)
 is available for the first ROMD review integration. Do not enable production
 AutoApply against synthetic catalogs.
 
@@ -95,22 +97,21 @@ HTTP fixtures. They do not prove host power-loss durability, GitHub deployment,
 upstream authenticity, or ROMD activation safety. DAT checks here are structural;
 full ROM/hash semantics and anomaly policies remain pending.
 
-## Next acceptance gates
+## Next work
 
-1. Qualify reliable acquisition, public redistribution conditions, and complete
-   coverage for one real platform. Preserve variant distinctions and explicit
-   inclusion settings.
-2. Prove a ROMD vertical slice: subscribe, detect a document change, understand an
-   exact-version diff, review, and activate a validated catalog. Keep the last
-   working catalog on failure and provide a visible error with a clear retry.
-3. Observe real updates and failures, then add automation or recovery where the
-   evidence warrants it. Further infrastructure expansion is paused.
+SNES acquisition, signed publication, and initial ROMD catalog acceptance are
+complete within the recorded scope. The September 2026 closeout verifies a
+subsequent real document change and current healthy acquisition. ROM import,
+hardware launch, and activation of that latest real revision were not exercised
+in the closeout. See [qualification evidence](docs/nointro-snes-qualification.md)
+and the [staged expansion plan](docs/catalog-expansion-plan.md).
 
-Initial and ordinary live synthetic publications passed. The signed format is
-still experimental; operational outage recovery and ROMD activation acceptance
-remain unproven. Existing [source-state tools](docs/source-state.md) are available
-for explicit operator use, but live acquisition is not enabled. Readers do not
-need a GitHub API token.
+Qualify each additional catalog before enabling it. Reuse the existing adapters,
+daily publication, signed distribution, and reviewed application activation.
+Existing [source-state tools](docs/source-state.md) remain available for explicit
+operator use; they are separate from the deployed daily acquisition workflow.
+Readers do not need a GitHub API token. Operational outage recovery remains a
+separate acceptance area.
 
 Only hand-authored synthetic DATs belong in current fixtures. No upstream
 content is distributed by this repository. No-Intro and Redump remain the

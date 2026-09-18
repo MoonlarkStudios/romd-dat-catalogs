@@ -13,18 +13,28 @@ import (
 )
 
 func TestSignedNoIntroCandidate(t *testing.T) {
+	for _, system := range []string{"snes", "gb", "gbc", "gba"} {
+		t.Run(system, func(t *testing.T) { testSignedNoIntroCandidate(t, system) })
+	}
+}
+func testSignedNoIntroCandidate(t *testing.T, system string) {
 	f := makeFixture(t)
 	registry, err := definitions.LoadSource("../../definitions")
 	if err != nil {
 		t.Fatal(err)
 	}
-	const id = "no-intro/snes/standard"
+	id := "no-intro/" + system + "/standard"
 	c := registry.Catalogs[id]
-	// Synthetic fixture floors only; production keeps the reviewed 4,000 minimum.
+	// Synthetic fixture floors only; production keeps measured per-system floors.
 	c.Validation = definitions.Validation{MinimumGames: 2, MinimumROMs: 2}
 	registry.Catalogs[id] = c
-	path := "../../fixtures/nointro-snes.dat"
-	raw := read(t, path)
+	raw := read(t, "../../fixtures/nointro-snes.dat")
+	raw = bytes.ReplaceAll(raw, []byte("<id>49</id>"), []byte("<id>"+c.ProviderSystemID+"</id>"))
+	raw = bytes.ReplaceAll(raw, []byte("Nintendo - Super Nintendo Entertainment System"), []byte(c.ExpectedName))
+	path := filepath.Join(t.TempDir(), "synthetic.dat")
+	if err := os.WriteFile(path, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
 	doc, counts, err := nointro.Validate(raw, c)
 	if err != nil || counts.Games != 2 || counts.ROMs != 2 {
 		t.Fatal("synthetic No-Intro validation", err)
@@ -60,7 +70,7 @@ func TestSignedNoIntroCandidate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if candidate.SystemID != "snes" || !bytes.Equal(received, doc) || candidate.SHA256 != publisher.Hash(doc) {
+	if candidate.SystemID != system || !bytes.Equal(received, doc) || candidate.SHA256 != publisher.Hash(doc) {
 		t.Fatal("wrong authenticated candidate", candidate)
 	}
 	url := "https://raw.githubusercontent.com/example/data/" + commit + "/" + id + ".dat"
@@ -75,7 +85,7 @@ func TestSignedNoIntroCandidate(t *testing.T) {
 		t.Fatal(err)
 	}
 	prior, err := definitions.Load(filepath.Join(restored, ".definitions.json"))
-	if err != nil || prior.Catalogs[id].ProviderSystemID != "49" {
+	if err != nil || prior.Catalogs[id].ProviderSystemID != c.ProviderSystemID {
 		t.Fatal("lost restored provider mapping", err)
 	}
 	for _, bad := range []string{strings.Replace(url, commit, "main", 1), strings.Replace(url, "/no-intro/", "/../", 1), url + "?token=x"} {

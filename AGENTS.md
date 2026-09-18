@@ -12,8 +12,15 @@ Supports macOS and Linux. Mise owns Go and development-tool versions.
 - Never treat checksums or unsigned experimental metadata as authentication.
 - Publish artifacts before references; retain working artifacts on acquisition
   failures. Keep publication lock files rather than unlinking between owners.
-- Do not commit upstream DATs or enable public mirroring until redistribution
-  conditions have been established. Do not bundle credentials.
+- The operator confirmed standing approval on 2026-09-18 UTC to redistribute
+  and retain all Redump and No-Intro DAT catalogs and metadata. This applies
+  across both providers, including future system additions; do not request
+  redistribution approval again for individual catalogs. It supersedes older
+  documentation describing approval as SNES-only or pending for these providers.
+  Preserve upstream bytes, attribution and notices. Acquisition qualification,
+  completeness checks and rollout validation still apply. Keep upstream DATs
+  out of this tooling repository; publish them through the data repository.
+  Do not bundle credentials.
 - Report prototype coverage separately from production and ROMD acceptance.
 - Tests include localhost HTTP fixtures. A sandbox denial binding a test port
   needs scoped escalation, not weakened tests. TUF fetcher max tries is 1;

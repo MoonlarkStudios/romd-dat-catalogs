@@ -31,104 +31,162 @@ type noIntroAcquirer interface {
 func runWithAcquirer(args []string, out, errOut io.Writer, adapter acquirer) error {
 	return runWithAdapters(args, out, errOut, adapter, nointro.New())
 }
+
+// catalogFlags preserves operator order without allowing implicit discovery.
+type catalogFlags []string
+
+func (v *catalogFlags) String() string { return fmt.Sprint([]string(*v)) }
+func (v *catalogFlags) Set(value string) error {
+	if value == "" {
+		return errors.New("empty catalog selection")
+	}
+	*v = append(*v, value)
+	return nil
+}
+
 func runWithAdapters(args []string, out, errOut io.Writer, adapter acquirer, noIntro noIntroAcquirer) error {
 	f := flag.NewFlagSet("publisher", flag.ContinueOnError)
 	f.SetOutput(errOut)
 	output := f.String("output", "", "publication directory (required)")
-	paused := f.Bool("paused", false, "record selected catalog as paused without fetching (requires existing state)")
+	paused := f.Bool("paused", false, "pause all selected catalogs")
 	registryPath := f.String("definitions", "definitions", "reviewed definitions directory")
-	catalogID := f.String("catalog", "", "exact catalog ID to acquire; exclusive with manifest")
+	var active, pauses catalogFlags
+	f.Var(&active, "catalog", "exact catalog ID to acquire (repeatable); exclusive with manifest")
+	f.Var(&pauses, "pause-catalog", "exact catalog ID to pause (repeatable)")
 	base := f.String("base-url", "https://catalogs.example.invalid/", "public HTTPS base URL")
-	if e := f.Parse(args); e != nil {
-		return e
+	if err := f.Parse(args); err != nil {
+		return err
 	}
-	if *output == "" || (*catalogID == "" && (f.NArg() != 1 || *paused)) || (*catalogID != "" && f.NArg() != 0) {
-		return fmt.Errorf("usage: publisher --output DIR MANIFEST | --catalog ID [--definitions DIR] [--paused]")
+	selected := append(append(catalogFlags{}, active...), pauses...)
+	if *output == "" || (len(selected) == 0 && (f.NArg() != 1 || *paused)) || (len(selected) > 0 && f.NArg() != 0) || len(selected) > 25 {
+		return errors.New("usage: publisher --output DIR MANIFEST | --catalog ID [--catalog ID ...] [--pause-catalog ID] [--definitions DIR] [--paused]")
 	}
-	var a []publisher.Attempt
-	var e error
-	var selected definitions.Catalog
-	if *catalogID != "" {
-		registry, err := definitions.LoadSource(*registryPath)
+	if len(selected) == 0 {
+		attempts, err := publisher.ReadManifest(f.Arg(0))
 		if err != nil {
 			return err
 		}
-		var ok bool
-		selected, ok = registry.Catalogs[*catalogID]
-		if !ok {
+		snapshot, err := publisher.Publish(*output, attempts, *base, publisher.Options{})
+		if err != nil {
+			return err
+		}
+		return writeSummary(out, snapshot)
+	}
+	registry, err := definitions.LoadSource(*registryPath)
+	if err != nil {
+		return err
+	}
+	oldDefinitions, err := definitions.Load(filepath.Join(*output, ".definitions.json"))
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := registry.Compatible(oldDefinitions); err != nil {
+		return err
+	}
+	seen := map[string]bool{}
+	for _, id := range selected {
+		if _, ok := registry.Catalogs[id]; !ok {
 			return errors.New("unknown catalog selection")
 		}
-		prior, err := definitions.Load(filepath.Join(*output, ".definitions.json"))
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
+		if seen[id] {
+			return errors.New("duplicate catalog selection")
+		}
+		seen[id] = true
+	}
+	prior, err := publisher.LoadSnapshot(*output)
+	if err != nil {
+		if _, stat := os.Stat(filepath.Join(*output, "current.json")); !errors.Is(stat, os.ErrNotExist) {
 			return err
 		}
-		if err := registry.Compatible(prior); err != nil {
-			return err
+		prior = publisher.Snapshot{}
+	}
+	// Provider cooldown survives new processes, even if the throttled catalog
+	// is not selected in this invocation. Validate all deadlines before fetching.
+	retryByProvider := map[string]time.Time{}
+	for id, c := range prior.Catalogs {
+		definition, known := registry.Catalogs[id]
+		if !known {
+			continue
+		}
+		if c.Name != definition.ExpectedName {
+			return errors.New("catalog identity changed; explicit migration required")
+		}
+		if c.RetryAt == nil {
+			continue
+		}
+		retry, err := time.Parse(time.RFC3339Nano, *c.RetryAt)
+		if err != nil {
+			return errors.New("invalid published retry time")
+		}
+		if retry.After(retryByProvider[definition.Provider]) {
+			retryByProvider[definition.Provider] = retry
 		}
 	}
-	if *paused {
-		prior, err := publisher.LoadSnapshot(*output)
-		if err != nil {
-			return err
-		}
-		if c, exists := prior.Catalogs[*catalogID]; exists {
-			if c.Name != selected.ExpectedName {
-				return errors.New("catalog identity changed; explicit migration required")
+	stageRoot, err := os.MkdirTemp("", "romd-acquisition-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(stageRoot)
+	var attempts []publisher.Attempt
+	for i, id := range selected {
+		c := registry.Catalogs[id]
+		old, exists := prior.Catalogs[id]
+		if *paused || i >= len(active) {
+			if exists {
+				failure := "publication_paused"
+				attempts = append(attempts, publisher.Attempt{CatalogID: id, ExpectedName: c.ExpectedName, SourceURL: sourceURL(c), Failure: &failure, RetryAt: old.RetryAt})
 			}
-			failure := "publication_paused"
-			a = append(a, publisher.Attempt{CatalogID: *catalogID, ExpectedName: selected.ExpectedName, SourceURL: sourceURL(selected), Failure: &failure})
-		} else {
-			return writeSummary(out, prior)
+			continue
 		}
-	} else if *catalogID != "" {
-		prior, err := publisher.LoadSnapshot(*output)
-		if err != nil {
-			if _, stat := os.Stat(filepath.Join(*output, "current.json")); !errors.Is(stat, os.ErrNotExist) {
-				return err
+		if retry := retryByProvider[c.Provider]; time.Now().Before(retry) {
+			stamp := retry.UTC().Format(time.RFC3339Nano)
+			if exists && old.RetryAt != nil && *old.RetryAt == stamp {
+				continue
 			}
-		} else if c, exists := prior.Catalogs[*catalogID]; exists && c.RetryAt != nil {
-			retry, err := time.Parse(time.RFC3339Nano, *c.RetryAt)
-			if err != nil {
-				return errors.New("invalid published retry time")
-			}
-			if time.Now().Before(retry) {
-				return writeSummary(out, prior)
-			}
+			failure := "provider_backoff"
+			attempts = append(attempts, publisher.Attempt{CatalogID: id, ExpectedName: c.ExpectedName, SourceURL: sourceURL(c), Failure: &failure, RetryAt: &stamp})
+			continue
 		}
-		stageRoot, err := os.MkdirTemp("", "romd-acquisition-")
-		if err != nil {
-			return err
-		}
-		defer os.RemoveAll(stageRoot)
-		switch selected.Provider {
+		stage := filepath.Join(stageRoot, fmt.Sprint(i))
+		var attempt publisher.Attempt
+		switch c.Provider {
 		case "no-intro":
-			result, err := noIntro.Acquire(context.Background(), *catalogID, selected, filepath.Join(stageRoot, "input"))
+			result, err := noIntro.Acquire(context.Background(), id, c, stage)
 			if err != nil {
 				return err
 			}
-			a = append(a, result.Attempt)
+			attempt = result.Attempt
 		case "redump":
-			results, err := adapter.Acquire(context.Background(), []redump.Catalog{{ID: *catalogID, System: selected.ProviderSystemID, ExpectedName: selected.ExpectedName, Platform: selected.SystemID, Representation: selected.Representation, PolicyVersion: "1", MinGames: selected.Validation.MinimumGames, MinROMs: selected.Validation.MinimumROMs}}, filepath.Join(stageRoot, "input"))
+			results, err := adapter.Acquire(context.Background(), []redump.Catalog{{ID: id, System: c.ProviderSystemID, ExpectedName: c.ExpectedName, Platform: c.SystemID, Representation: c.Representation, PolicyVersion: "1", MinGames: c.Validation.MinimumGames, MinROMs: c.Validation.MinimumROMs}}, stage)
 			if err != nil {
 				return err
 			}
-			for _, result := range results {
-				a = append(a, result.Attempt)
+			if len(results) != 1 {
+				return errors.New("unexpected acquisition result count")
 			}
+			attempt = results[0].Attempt
 		default:
 			return errors.New("unsupported provider")
 		}
-	} else {
-		a, e = publisher.ReadManifest(f.Arg(0))
+		if attempt.RetryAt != nil {
+			retry, err := time.Parse(time.RFC3339Nano, *attempt.RetryAt)
+			if err != nil {
+				return errors.New("invalid acquisition retry time")
+			}
+			if retry.After(retryByProvider[c.Provider]) {
+				retryByProvider[c.Provider] = retry
+			}
+		}
+		attempts = append(attempts, attempt)
 	}
-	if e != nil {
-		return e
+	if len(attempts) == 0 {
+		return writeSummary(out, prior)
 	}
-	s, e := publisher.Publish(*output, a, *base, publisher.Options{})
-	if e != nil {
-		return e
+	snapshot, err := publisher.Publish(*output, attempts, *base, publisher.Options{})
+	if err != nil {
+		return err
 	}
-	return writeSummary(out, s)
+	return writeSummary(out, snapshot)
 }
 
 func writeSummary(out io.Writer, s publisher.Snapshot) error {

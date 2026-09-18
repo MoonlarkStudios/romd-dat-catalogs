@@ -20,5 +20,38 @@
       "minimumGames": 4000,
       "minimumRoms": 4000
     }
+  },
+  "no-intro/gb/standard": {
+    "systemId": "gb",
+    "provider": "no-intro",
+    "providerSystemId": "46",
+    "representation": "standard",
+    "expectedName": "Nintendo - Game Boy",
+    "validation": {
+      "minimumGames": 2200,
+      "minimumRoms": 2200
+    }
+  },
+  "no-intro/gbc/standard": {
+    "systemId": "gbc",
+    "provider": "no-intro",
+    "providerSystemId": "47",
+    "representation": "standard",
+    "expectedName": "Nintendo - Game Boy Color",
+    "validation": {
+      "minimumGames": 2500,
+      "minimumRoms": 2500
+    }
+  },
+  "no-intro/gba/standard": {
+    "systemId": "gba",
+    "provider": "no-intro",
+    "providerSystemId": "23",
+    "representation": "standard",
+    "expectedName": "Nintendo - Game Boy Advance",
+    "validation": {
+      "minimumGames": 3500,
+      "minimumRoms": 3500
+    }
   }
 }

@@ -66,35 +66,33 @@ jobs:
           ./bin/distribution restore --site "$SITE" --root trust/1.root.json --state output --bootstrap="$BOOTSTRAP" --migration-site "$MIGRATION_SITE"
       - name: Publish synthetic local candidate
         run: ./bin/publisher --output output fixtures/manifest.json
-      - name: Check PSX or record publication pause
+      - name: Acquire enabled catalogs with shared provider pacing
         env:
           PSX_ENABLED: ${{ vars.REDUMP_PSX_PUBLISH_ENABLED }}
+          SNES_ENABLED: ${{ vars.NOINTRO_SNES_PUBLISH_ENABLED }}
+          GB_ENABLED: ${{ vars.NOINTRO_GB_PUBLISH_ENABLED }}
+          GBC_ENABLED: ${{ vars.NOINTRO_GBC_PUBLISH_ENABLED }}
+          GBA_ENABLED: ${{ vars.NOINTRO_GBA_PUBLISH_ENABLED }}
         run: |
           set -euo pipefail
-          if [ "$PSX_ENABLED" = true ]; then
-            ./bin/publisher --output output --definitions definitions --catalog redump/psx/discs > publication-summary.json
-          else
-            ./bin/publisher --output output --definitions definitions --catalog redump/psx/discs --paused > publication-summary.json
-          fi
+          args=(--output output --definitions definitions)
+          select_catalog() {
+            if [ "$2" = true ]; then
+              args+=(--catalog "$1")
+            else
+              args+=(--pause-catalog "$1")
+            fi
+          }
+          select_catalog redump/psx/discs "$PSX_ENABLED"
+          select_catalog no-intro/snes/standard "$SNES_ENABLED"
+          select_catalog no-intro/gb/standard "$GB_ENABLED"
+          select_catalog no-intro/gbc/standard "$GBC_ENABLED"
+          select_catalog no-intro/gba/standard "$GBA_ENABLED"
+          ./bin/publisher "${args[@]}" > publication-summary.json
           {
             printf '### Catalog acquisition result\n\n```json\n'
             cat publication-summary.json
-            printf '\n```\n\nAcquisition failures preserve the last working artifact. Deployment is verified in subsequent steps.\n'
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: Check No-Intro SNES or record publication pause
-        env:
-          SNES_ENABLED: ${{ vars.NOINTRO_SNES_PUBLISH_ENABLED }}
-        run: |
-          set -euo pipefail
-          if [ "$SNES_ENABLED" = true ]; then
-            ./bin/publisher --output output --definitions definitions --catalog no-intro/snes/standard > nointro-summary.json
-          else
-            ./bin/publisher --output output --definitions definitions --catalog no-intro/snes/standard --paused > nointro-summary.json
-          fi
-          {
-            printf '### No-Intro acquisition result\n\n```json\n'
-            cat nointro-summary.json
-            printf '\n```\n\nMirroring requires the No-Intro qualification gate. Failures retain the last working DAT.\n'
+            printf '\n```\n\nFailures preserve the last working artifact. New mirrors require recorded qualification.\n'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Check out data repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
