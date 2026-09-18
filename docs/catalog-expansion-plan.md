@@ -9,7 +9,13 @@ complete-public acquisitions and database membership comparisons passed.
 All three are now publicly deployed and passed isolated ROMD catalog acceptance.
 Batch 1 is complete within that scope. The operator authorized immediate GBC/GBA
 release after Game Boy acceptance, superseding the scheduled-observation gate;
-no scheduled handheld check is claimed. Batch 2 (NES, Genesis, N64) is next.
+no scheduled handheld check is claimed.
+
+[Batch 2 qualification and rollout](nointro-home-console-qualification.md) covers
+NES (Headered), Genesis and N64 (BigEndian). All three are now publicly deployed
+and passed isolated ROMD import, unchanged-check, failure-retention and recovery
+acceptance. Batch 2 is complete within catalog scope.
+Batch 3 (Master System, Game Gear, PC Engine/TurboGrafx-16, 32X) is next.
 
 ## SNES closeout
 
@@ -119,7 +125,8 @@ not a claim that deferred systems cannot work.
    Pause a failing catalog and retain its working artifact; a genuine upstream
    version change is recorded when available, not fabricated to close a gate.
 
-The next implementation slice is batch 2 qualification: NES representation,
-Genesis provider identity and N64 byte order, followed by complete-public
-reconciliation and explicit rollout. None is enabled yet. Reuse the deployed
-shared-provider batch workflow and existing trust root.
+The next implementation slice is batch 3 qualification: Master System, Game
+Gear, PC Engine/TurboGrafx-16 and 32X. Verify exact provider identities, complete
+public membership, file representations and measured floors before enablement.
+None is enabled yet. Reuse the deployed shared-provider batch workflow and
+existing trust root.

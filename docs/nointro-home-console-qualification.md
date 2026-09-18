@@ -55,7 +55,7 @@ Standing redistribution approval is recorded in `AGENTS.md`.
 
 ## Implementation and validation
 
-Explicit per-catalog variables select Genesis and N64 in the existing shared
+Explicit per-catalog variables select NES, Genesis and N64 in the existing shared
 provider batch. Missing or false variables leave them disabled. Existing root,
 metadata versions, catalog identities and acquisition pacing are preserved.
 Acquisition failures now print catalog ID and adapter failure code to stderr;
@@ -66,12 +66,11 @@ Synthetic tests cover reviewed forms, missing/duplicate format rejection,
 cross-system document rejection, signed candidate exact bytes, immutable export,
 RSS and authenticated restoration. `mise run check` passes race tests, formatting,
 vet, workflow lint and builds. Final measured-definition local acquisition passed
-for both systems with the hashes above. The initial N64 attempt failed closed
+for all three systems with the hashes recorded here. The initial N64 attempt failed closed
 because its header includes BigEndian; the explicit selector/header mapping fixed
 that mismatch. NES passed after its upstream exports became available; the gate was not waived.
 
-Production publication and isolated ROMD acceptance are recorded separately below
-when completed. This qualification does not claim ROM ingestion, normalization,
+Production publication and isolated ROMD acceptance are recorded separately below. This qualification does not claim ROM ingestion, normalization,
 emulator/hardware acceptance, a real changed revision or a scheduled observation.
 
 
@@ -98,3 +97,87 @@ NES has its own explicit publication variable. Synthetic tests reject a
 Headerless DAT under this Headered identity and a ByteSwapped DAT under N64's
 BigEndian identity. No application-side header stripping or byte-order conversion
 is introduced by this catalog release.
+
+## Production rollout
+
+Genesis/N64 tooling [PR #24](https://github.com/MoonlarkStudios/romd-dat-catalogs/pull/24)
+passed CI and merged at `097cb20743d43f256d6ee6b5e8cbe7a2b7eafe76`.
+Data [PR #5](https://github.com/MoonlarkStudios/romd-dat-data/pull/5) updated both
+workflow pins. With the two explicit opt-ins enabled,
+[run 35363137044](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/35363137044)
+produced publication **3026**. Independent authenticated discovery and candidate
+downloads verified both new catalogs healthy with the qualified hashes; all five
+previous real catalogs were also healthy.
+
+NES tooling [PR #25](https://github.com/MoonlarkStudios/romd-dat-catalogs/pull/25)
+passed CI and merged at `281faa37e2a654fd3602ca0cf55bb1eae765019a`.
+Data [PR #6](https://github.com/MoonlarkStudios/romd-dat-data/pull/6) pins this final
+revision. `NOINTRO_NES_PUBLISH_ENABLED=true` was set after qualification.
+The first [NES run 35363750534](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/35363750534)
+published metadata **3027** but NES acquisition failed with `form_changed`; the
+other seven catalogs remained healthy. Independent candidate verification rejected
+NES because it had no healthy artifact. This run was not counted as NES release
+success. The exact failing form stage was not retained, so it is not proof of the
+same queue response seen locally. A fresh run was dispatched without weakening
+the reviewed form policy or importing unsigned qualification state.
+
+The next [run 35364339804](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/35364339804)
+recorded `request_failed` for all seven No-Intro acquisitions at 30-second
+intervals. It deployed **3028**, retaining existing artifacts but leaving NES
+without one. Its final restoration check failed with HTTP 404 for
+`metadata/3027.snapshot.json` while expecting 3028. Subsequent independent
+verification authenticated 3028 successfully. This is evidence of the observed
+post-deployment verification inconsistency, not a diagnosed CDN root cause.
+A further fresh runner was dispatched to recover healthy acquisition. No caches,
+trust roots, validation rules or metadata version checks were reset.
+
+
+[Recovery run 35365045874](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/35365045874)
+passed the full workflow, including deployed restoration. Independently verified
+publication **3029**, schema **3**, is healthy for all eight real catalogs.
+The three new catalogs record successful acquisition at
+`2026-09-18T15:56:00.832380342Z`; their counts, bytes and hashes exactly match
+qualification. The immutable data commit is
+`25cf4fb7e9a9c4dad633374358743c6dbfad8511`. Independent candidate verification
+passed for all three identities, and all three signed change events are present.
+The original pinned root and retained verification cache were used throughout.
+
+## Isolated ROMD acceptance
+
+The existing separate acceptance Docker project was reused, with its own
+PostgreSQL/data volumes and admin on localhost. The ordinary development stack
+was untouched. Existing admin/worker images and the previously built frontend
+were used; no application source or generated client changed.
+
+Browser acceptance for each new system verified subscription discovery, the
+exact expected DAT header/version and entry/file counts, explicit review approval,
+processing completion and an Active source. Reviews identified 32 Genesis, three
+N64 and 12 NES BIOS entries. NES's two extra file records and Genesis's one extra
+file record were preserved rather than collapsed into entry counts.
+
+Normal test-account OAuth calls to `/api/dat-subscriptions/check` returned
+UpToDate with no error for all three. Each active download matched the signed
+byte length and SHA-256 above. Genesis/N64 outage acceptance ran while NES was
+publishing; NES outage acceptance ran after its activation. In each case, an
+unreachable publisher URL was injected only into the isolated admin. Enrollment
+checks returned CheckFailed while the active file remained downloadable with
+identical bytes. Restoring the real publisher returned UpToDate with no error
+and zero consecutive failures.
+
+Final database evidence: six Active DAT versions (three handheld plus three new),
+21,297 entries, 21,300 files and six import jobs. NES's before/after outage counts
+were identical; Genesis/N64 also retained one version/job each through their
+outage test. No duplicate imports or replacement active documents resulted from
+unchanged checks or retries.
+
+Batch 2 is complete within catalog acquisition/publication/ingestion scope.
+Local `mise run check`, both implementation PR CIs and the final production
+workflow passed. No new backend suite, frontend build, ROM import, header/byte-order
+normalization, emulator/hardware launch, NAS deployment, changed real revision
+or scheduled observation was exercised. Existing GitHub Action Node-20 deprecation
+(forced Node-24 execution) and upcoming runner-image notices remain. The transient
+acquisition and post-deployment verification failures above are retained in this
+record rather than claimed as passing runs.
+
+Batch 3 (Master System, Game Gear, PC Engine/TurboGrafx-16 and 32X) remains planned
+and disabled. No recurring rollout automation was created or resumed.
