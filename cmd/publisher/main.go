@@ -168,6 +168,9 @@ func runWithAdapters(args []string, out, errOut io.Writer, adapter acquirer, noI
 		default:
 			return errors.New("unsupported provider")
 		}
+		if attempt.Failure != nil {
+			fmt.Fprintf(errOut, "catalog %s: %s\n", id, *attempt.Failure)
+		}
 		if attempt.RetryAt != nil {
 			retry, err := time.Parse(time.RFC3339Nano, *attempt.RetryAt)
 			if err != nil {

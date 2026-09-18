@@ -53,5 +53,27 @@
       "minimumGames": 3500,
       "minimumRoms": 3500
     }
+  },
+  "no-intro/genesis/standard": {
+    "systemId": "genesis",
+    "provider": "no-intro",
+    "providerSystemId": "32",
+    "representation": "standard",
+    "expectedName": "Sega - Mega Drive - Genesis",
+    "validation": {
+      "minimumGames": 3300,
+      "minimumRoms": 3300
+    }
+  },
+  "no-intro/n64/standard": {
+    "systemId": "n64",
+    "provider": "no-intro",
+    "providerSystemId": "24",
+    "representation": "standard",
+    "expectedName": "Nintendo - Nintendo 64 (BigEndian)",
+    "validation": {
+      "minimumGames": 1150,
+      "minimumRoms": 1150
+    }
   }
 }

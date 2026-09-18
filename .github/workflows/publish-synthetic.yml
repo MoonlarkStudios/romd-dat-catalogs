@@ -73,6 +73,8 @@ jobs:
           GB_ENABLED: ${{ vars.NOINTRO_GB_PUBLISH_ENABLED }}
           GBC_ENABLED: ${{ vars.NOINTRO_GBC_PUBLISH_ENABLED }}
           GBA_ENABLED: ${{ vars.NOINTRO_GBA_PUBLISH_ENABLED }}
+          GENESIS_ENABLED: ${{ vars.NOINTRO_GENESIS_PUBLISH_ENABLED }}
+          N64_ENABLED: ${{ vars.NOINTRO_N64_PUBLISH_ENABLED }}
         run: |
           set -euo pipefail
           args=(--output output --definitions definitions)
@@ -88,6 +90,8 @@ jobs:
           select_catalog no-intro/gb/standard "$GB_ENABLED"
           select_catalog no-intro/gbc/standard "$GBC_ENABLED"
           select_catalog no-intro/gba/standard "$GBA_ENABLED"
+          select_catalog no-intro/genesis/standard "$GENESIS_ENABLED"
+          select_catalog no-intro/n64/standard "$N64_ENABLED"
           ./bin/publisher "${args[@]}" > publication-summary.json
           {
             printf '### Catalog acquisition result\n\n```json\n'

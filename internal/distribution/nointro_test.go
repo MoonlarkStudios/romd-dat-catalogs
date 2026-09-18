@@ -13,7 +13,7 @@ import (
 )
 
 func TestSignedNoIntroCandidate(t *testing.T) {
-	for _, system := range []string{"snes", "gb", "gbc", "gba"} {
+	for _, system := range []string{"snes", "gb", "gbc", "gba", "genesis", "n64"} {
 		t.Run(system, func(t *testing.T) { testSignedNoIntroCandidate(t, system) })
 	}
 }

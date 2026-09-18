@@ -113,10 +113,13 @@ func (a *captureAcquirer) Acquire(_ context.Context, c []redump.Catalog, _ strin
 func TestCatalogSelectionBeforeNetwork(t *testing.T) {
 	adapter := &captureAcquirer{}
 	root := filepath.Join(t.TempDir(), "state")
-	var out bytes.Buffer
+	var out, diagnostics bytes.Buffer
 	args := []string{"--output", root, "--definitions", "../../definitions", "--catalog", "redump/psx/discs"}
-	if err := runWithAcquirer(args, &out, &out, adapter); err != nil {
+	if err := runWithAcquirer(args, &out, &diagnostics, adapter); err != nil {
 		t.Fatal(err)
+	}
+	if !strings.Contains(diagnostics.String(), "catalog redump/psx/discs: offline fixture") || !json.Valid(out.Bytes()) {
+		t.Fatal("diagnostics must be separate from JSON output", diagnostics.String(), out.String())
 	}
 	c := adapter.catalogs[0]
 	if adapter.calls != 1 || c.Platform != "psx" || c.System != "psx" || c.MinGames != 10000 || c.MinROMs != 50000 {

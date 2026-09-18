@@ -79,13 +79,18 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 			return nil, bad
 		}
 	}
+	selectorName := c.ExpectedName
+	// Official selector labels omit the representation suffix in DAT headers.
+	if c.ProviderSystemID == "24" && c.ExpectedName == "Nintendo - Nintendo 64 (BigEndian)" {
+		selectorName = "Nintendo - Nintendo 64"
+	}
 	identity := false
 	for _, o := range options.FindAllStringSubmatch(content, -1) {
 		a, err := attrs(o[1])
 		if err != nil {
 			return nil, bad
 		}
-		if _, ok := a["selected"]; ok && a["value"] == c.ProviderSystemID && strings.TrimSpace(html.UnescapeString(o[2])) == c.ExpectedName {
+		if _, ok := a["selected"]; ok && a["value"] == c.ProviderSystemID && strings.TrimSpace(html.UnescapeString(o[2])) == selectorName {
 			identity = true
 		}
 	}
@@ -95,7 +100,7 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 	values := completeSelection()
 	// Reviewed per-system controls: GBC has no collection selector; GBA
 	// exposes numbered, x-ROM and z-ROM categories instead of adult filtering.
-	if c.ProviderSystemID == "47" {
+	if c.ProviderSystemID == "47" || c.ProviderSystemID == "45" || c.ProviderSystemID == "32" || c.ProviderSystemID == "24" {
 		delete(values, "collection")
 	}
 	if c.ProviderSystemID == "23" {
@@ -103,6 +108,14 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 		values.Set("numbered", "0")
 		values.Set("inc_xroms", "1")
 		values.Set("inc_zroms", "1")
+	}
+	// NES format 0 is Headered; omit the header-removal plugin. N64 format 0
+	// is BigEndian. These reviewed systems expose no collection selector.
+	if c.ProviderSystemID == "45" {
+		values.Set("header_plugin", "0")
+	}
+	if c.ProviderSystemID == "24" {
+		delete(values, "inc_adult")
 	}
 	found := map[string]int{}
 	submit := ""
