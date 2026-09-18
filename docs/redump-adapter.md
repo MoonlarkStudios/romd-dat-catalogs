@@ -4,6 +4,8 @@
 repository's daily workflow calls `publisher --catalog redump/psx/discs` only when
 `REDUMP_PSX_PUBLISH_ENABLED=true`. Qualified Saturn, Sega CD and Dreamcast have
 their own explicit opt-ins; see [Sega disc qualification](redump-sega-qualification.md).
+GameCube, PS2 and Wii are also qualified with individual opt-ins; see their
+[qualification and rollout](redump-gamecube-ps2-wii-qualification.md).
 ROMD instances download from the signed mirror.
 Tests use synthetic data and local HTTP servers.
 
