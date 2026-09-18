@@ -78,3 +78,60 @@ passed for all three at `2026-09-18T16:55:52.45367Z`, with exact hashes above.
 Production publication and isolated ROMD acceptance are separate gates. This
 qualification alone does not establish ROM import, cue parsing during game
 launch, disc switching, emulator/hardware acceptance or unattended reliability.
+
+## Release authorization and pin
+
+The operator authorized this next batch after batch 3 completed. Tooling
+[PR #29](https://github.com/MoonlarkStudios/romd-dat-catalogs/pull/29) passed CI and
+merged at `f6c33b749105d004d7435a69d27d00729b56978e`. Data
+[PR #8](https://github.com/MoonlarkStudios/romd-dat-data/pull/8) pins both reusable
+workflow and tooling checkout to that revision. Explicit variables
+`REDUMP_SATURN_PUBLISH_ENABLED`, `REDUMP_SEGACD_PUBLISH_ENABLED` and
+`REDUMP_DC_PUBLISH_ENABLED` are enabled. No recurring automation was added or resumed.
+
+## Production publication
+
+[Run 35371739422](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/35371739422)
+passed, including verification of deployed signatures and authenticated restoration.
+Independent discovery authenticated publication **3031**, schema **3**, with all
+**15 real catalogs healthy**. All three new catalogs acquired successfully at
+`2026-09-18T17:04:46.674365258Z`, with the exact qualified counts, sizes and hashes.
+Independent signed candidate downloads passed for each system using the original
+pinned root. Their content events are present at snapshot sequence 72; immutable
+assets reference data commit `ca21278bb05dbe24eaceff6dce666baeb5e5ed9f`.
+Existing catalogs, including PSX/SNES, remain healthy. Synthetic fixtures are
+excluded from the 15-system count. Existing action Node-20 deprecation/forced
+Node-24 and upcoming Ubuntu runner-image notices remain unchanged.
+
+## Isolated ROMD acceptance
+
+The existing acceptance Docker project, separate PostgreSQL/data volumes and
+localhost admin were reused. All three systems passed browser subscription
+discovery, verified first-import review, explicit approval, processing and Active
+source checks. The reviews showed the qualified versions and exact disc/file
+counts, including multiple files per disc and separate multi-disc entries; zero
+BIOS entries were identified in each of these standard disc catalogs.
+
+Normal test-account OAuth checks returned UpToDate without error. Active downloads
+matched signed byte lengths and SHA-256 hashes. Temporarily pointing only the
+isolated admin at an unreachable publisher returned CheckFailed for all three,
+while the same active DAT IDs and exact downloads remained available. Restoring
+the real publisher returned UpToDate with no errors and zero consecutive failures.
+A refreshed Saturn browser source page showed Active and Up to date after recovery.
+
+Before/after database evidence is identical apart from unordered row order:
+13 Active DAT versions, 28,736 entries, 75,923 files and 13 import jobs. These are
+the ten previously accepted catalogs plus three new disc catalogs. No duplicate
+versions/jobs or replaced active documents resulted from unchanged checks or
+outage recovery. The outage used the saved original Compose definition so
+concurrent deployment work in the application checkout remained untouched.
+
+Batch 4 is complete within acquisition, signed publication and ROMD catalog
+ingestion scope. Local checks, implementation CI and the production workflow
+passed. Existing application images/frontend were reused; this task changed no
+application source or generated client and ran no new backend suite/frontend
+build. No game-file import, cue-to-emulator conversion, multi-disc switching,
+hardware/emulator launch, NAS deployment, changed real upstream revision or
+scheduled observation is claimed. All four originally planned expansion batches
+are now complete in this catalog scope; further systems need a new qualification
+slice. No additional systems or recurring rollout automation were enabled.
