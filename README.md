@@ -4,7 +4,9 @@ Companion publisher for ROMD's planned one-click No-Intro and Redump DAT
 subscriptions. Complete upstream catalogs come first; future 1G1R filtering
 belongs in ROMD's library layer.
 
-**Current status: 18 signed catalogs are live: PSX, SNES, Game Boy, Game Boy Color, Game Boy Advance, NES (Headered), Genesis, N64 (BigEndian), Master System, Game Gear, PC Engine/TurboGrafx-16, 32X, Saturn, Sega CD, Dreamcast, GameCube, PlayStation 2 and Wii.**
+**Current status: 22 signed catalogs are live: PSX, SNES, Game Boy, Game Boy Color, Game Boy Advance, NES (Headered), Genesis, N64 (BigEndian), Master System, Game Gear, PC Engine/TurboGrafx-16, 32X, Saturn, Sega CD, Dreamcast, GameCube, PlayStation 2, Wii, Nintendo DS (Decrypted), Nintendo 3DS (Decrypted), PSP and PC Engine CD/TurboGrafx-CD.**
+The September 19 verification found all newly requested catalogs healthy; NES
+retains its last working DAT pending review of an upstream form change.
 See the [SNES closeout and expansion plan](docs/catalog-expansion-plan.md).
 The Game Boy family has [passed acquisition, public membership and isolated
 ROMD catalog acceptance](docs/nointro-handheld-qualification.md).
@@ -27,7 +29,9 @@ PC Engine/TurboGrafx-16 and 32X](docs/nointro-batch-three-qualification.md) pass
 qualification, publication and isolated ROMD acceptance. [Saturn, Sega CD and
 Dreamcast](docs/redump-sega-qualification.md) also passed those gates using the
 standard Redump disc catalogs. [GameCube, PlayStation 2 and Wii](docs/redump-gamecube-ps2-wii-qualification.md)
-also passed qualification, signed publication and isolated ROMD acceptance. These are the 18 enabled
+also passed qualification, signed publication and isolated ROMD acceptance.
+[Nintendo DS, Nintendo 3DS, PSP and PC Engine CD](docs/nds-3ds-psp-pcecd-qualification.md)
+have now passed the same release gates. These are the 22 enabled
 real catalogs; synthetic fixtures remain
 separate. An operator-driven [candidate reader](docs/romd-candidate.md)
 is available for the first ROMD review integration. Do not enable production

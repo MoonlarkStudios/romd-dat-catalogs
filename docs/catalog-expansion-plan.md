@@ -147,3 +147,16 @@ isolated ROMD discovery, reviewed import, exact field/byte preservation (includi
 file sizes above 4 GiB), unchanged checks, outage retention and recovery. This
 completes batch 5 in catalog scope; compressed game-image conversion and emulator
 launch are separate work. No additional systems or rollout automation were enabled.
+
+
+## Batch 6: DS, 3DS, PSP and PC Engine CD
+
+The requested Dreamcast, Wii, Saturn and PC Engine cartridge subscriptions were
+already live and passed fresh signed discovery and ROMD unchanged checks.
+[Nintendo DS, Nintendo 3DS, PSP and PC Engine CD qualification](nds-3ds-psp-pcecd-qualification.md)
+adds the four missing subscriptions. DS and 3DS explicitly select decrypted
+representations. PSP and PC Engine CD use standard Redump disc catalogs; CD is a
+separate `tgcd` subscription from cartridge `tg16`. All four passed signed
+publication, reviewed import, full field/byte reconciliation, unchanged checks,
+outage retention and recovery in isolated ROMD. The enabled real catalog count
+is now 22. No other system variants or automation were enabled.
