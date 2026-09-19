@@ -196,5 +196,49 @@
       "minimumGames": 3500,
       "minimumRoms": 3500
     }
+  },
+  "redump/psp/discs": {
+    "systemId": "psp",
+    "provider": "redump",
+    "providerSystemId": "psp",
+    "representation": "discs",
+    "expectedName": "Sony - PlayStation Portable",
+    "validation": {
+      "minimumGames": 3300,
+      "minimumRoms": 3300
+    }
+  },
+  "redump/tgcd/discs": {
+    "systemId": "tgcd",
+    "provider": "redump",
+    "providerSystemId": "pce",
+    "representation": "discs",
+    "expectedName": "NEC - PC Engine CD & TurboGrafx CD",
+    "validation": {
+      "minimumGames": 500,
+      "minimumRoms": 15000
+    }
+  },
+  "no-intro/nds/standard": {
+    "systemId": "nds",
+    "provider": "no-intro",
+    "providerSystemId": "28",
+    "representation": "standard",
+    "expectedName": "Nintendo - Nintendo DS (Decrypted)",
+    "validation": {
+      "minimumGames": 7000,
+      "minimumRoms": 7000
+    }
+  },
+  "no-intro/3ds/standard": {
+    "systemId": "3ds",
+    "provider": "no-intro",
+    "providerSystemId": "64",
+    "representation": "standard",
+    "expectedName": "Nintendo - Nintendo 3DS (Decrypted)",
+    "validation": {
+      "minimumGames": 1900,
+      "minimumRoms": 1900
+    }
   }
 }

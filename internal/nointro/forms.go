@@ -87,6 +87,9 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 	if c.ProviderSystemID == "45" && c.ExpectedName == "Nintendo - Nintendo Entertainment System (Headered)" {
 		selectorName = "Nintendo - Nintendo Entertainment System"
 	}
+	if (c.ProviderSystemID == "28" && c.ExpectedName == "Nintendo - Nintendo DS (Decrypted)") || (c.ProviderSystemID == "64" && c.ExpectedName == "Nintendo - Nintendo 3DS (Decrypted)") {
+		selectorName = strings.TrimSuffix(c.ExpectedName, " (Decrypted)")
+	}
 	identity := false
 	for _, o := range options.FindAllStringSubmatch(content, -1) {
 		a, err := attrs(o[1])
@@ -134,6 +137,20 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 		}
 		if c.ProviderSystemID == "26" {
 			values.Set("inc_zroms", "1")
+		}
+	}
+	// DS and 3DS use explicit decrypted format 0, canonical unnumbered names,
+	// and all x/z-ROM groups. 3DS exposes no license or lifespan filters.
+	if c.ProviderSystemID == "28" || c.ProviderSystemID == "64" {
+		delete(values, "collection")
+		delete(values, "inc_adult")
+		values.Set("numbered", "0")
+		values.Set("inc_xroms", "1")
+		values.Set("inc_zroms", "1")
+		if c.ProviderSystemID == "64" {
+			for _, name := range []string{"license_0", "license_1", "license_2", "lifespan_1", "lifespan_2"} {
+				delete(values, name)
+			}
 		}
 	}
 	found := map[string]int{}
