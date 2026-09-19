@@ -63,8 +63,56 @@ exact bytes and upstream attribution; no raw DATs are committed here.
 vet, formatting, actionlint and builds. Signed candidate tests cover all four
 new mappings, exact bytes, immutable artifacts, feeds and restoration. DS/3DS
 form tests reject missing categories, wrong identities and ambiguous formats;
-validation rejects encrypted headers. `validate-definitions` passed.
+validation rejects encrypted headers. `validate-definitions` and `mise run smoke` passed.
 No ROMD backend, API, generated client, database schema or runtime changes are
 required. The rollout adds four explicit workflow opt-ins, then pins the data
 workflow to the merged tooling commit. Publication and isolated ROMD acceptance
-are pending; local qualification is not a production claim.
+are recorded below.
+
+
+## Signed publication and ROMD acceptance
+
+[Tooling PR 33](https://github.com/MoonlarkStudios/romd-dat-catalogs/pull/33)
+passed CI and merged as `fb033d19090e964337c64de452a286cfaf0d38e1`.
+[Data PR 10](https://github.com/MoonlarkStudios/romd-dat-data/pull/10) pins both
+workflow and checkout to that commit. All four new explicit opt-ins are enabled.
+[Publication 3035](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/35466597843)
+succeeded, with all four catalogs healthy at 2026-09-19T20:16:29.147884956Z.
+The original trust root and retained anti-rollback cache verified discovery;
+independent candidates exactly matched every qualified byte length/SHA-256.
+All four content events have sequence 80 and immutable data URLs at commit
+`6ac32a9ff3a335543bff2455ea1201a207a7cc24`.
+
+The same publication recorded an unrelated NES `acquisition_failed`, retaining
+its previous working DAT and supplying no retry deadline. [Recovery publication 3036](https://github.com/MoonlarkStudios/romd-dat-data/actions/runs/35466994370)
+succeeded at the workflow level but still recorded NES acquisition failure.
+Its diagnostic is `form_changed`; the guard correctly retained the previous
+7,660-entry/7,662-file NES artifact. No retry deadline was supplied, and no further
+manual retry was made after confirming this was a form-qualification failure.
+All eight catalog identities requested in this batch (including cartridge and CD
+as separate catalogs) are healthy at 2026-09-19T20:24:33.938245002Z. All four new
+artifact hashes are unchanged. Thus 22 real catalogs are enabled and available;
+21 have healthy latest acquisition, with NES separately requiring form review.
+
+The isolated ROMD environment discovered all four subscriptions and reviewed and
+activated their first imports. DS includes 17 BIOS entries and 3DS includes two.
+All 29,730 imported file records match the original DATs by entry name, file name,
+size, CRC32, MD5 and SHA1, including multiplicity. The 3DS nodump remains without
+invented hashes; active DAT downloads preserve exact upstream bytes. 3DS's largest
+expected file is 4,294,967,296 bytes; PSP preserves two records above 4 GiB and a
+maximum of 7,815,495,680 bytes. These are upstream metadata values, not downloaded
+game images.
+
+Unchanged checks returned UpToDate. With only the isolated admin's catalog site
+made unreachable, all four returned CheckFailed and continued serving their
+unchanged active DATs. Restoring the normal site returned all four to UpToDate.
+The database evidence before/after the outage matches after normalizing SQL row order: 20 active
+DATs, 20 versions, 60,343 entries, 126,519 files and 20 processing jobs. There were
+no duplicate imports or jobs. Existing requested Dreamcast, Wii, Saturn and PC
+Engine cartridge subscriptions also passed fresh unchanged checks and byte
+verification. The acceptance environment was restored and left running.
+
+This completes catalog subscription and ingestion acceptance. A future genuine
+upstream content update and the next daily scheduled run have not been observed
+for these four new catalogs; no such observation is claimed. No emulator launch,
+game-image conversion or additional source variants were added.
