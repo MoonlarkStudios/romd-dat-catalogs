@@ -70,6 +70,8 @@ jobs:
         env:
           GC_ENABLED: ${{ vars.REDUMP_GC_PUBLISH_ENABLED }}
           PS2_ENABLED: ${{ vars.REDUMP_PS2_PUBLISH_ENABLED }}
+          PSP_ENABLED: ${{ vars.REDUMP_PSP_PUBLISH_ENABLED }}
+          TGCD_ENABLED: ${{ vars.REDUMP_TGCD_PUBLISH_ENABLED }}
           WII_ENABLED: ${{ vars.REDUMP_WII_PUBLISH_ENABLED }}
           SATURN_ENABLED: ${{ vars.REDUMP_SATURN_PUBLISH_ENABLED }}
           SEGACD_ENABLED: ${{ vars.REDUMP_SEGACD_PUBLISH_ENABLED }}
@@ -85,6 +87,8 @@ jobs:
           SMS_ENABLED: ${{ vars.NOINTRO_SMS_PUBLISH_ENABLED }}
           GG_ENABLED: ${{ vars.NOINTRO_GG_PUBLISH_ENABLED }}
           TG16_ENABLED: ${{ vars.NOINTRO_TG16_PUBLISH_ENABLED }}
+          NDS_ENABLED: ${{ vars.NOINTRO_NDS_PUBLISH_ENABLED }}
+          N3DS_ENABLED: ${{ vars.NOINTRO_3DS_PUBLISH_ENABLED }}
           SEGA32X_ENABLED: ${{ vars.NOINTRO_32X_PUBLISH_ENABLED }}
         run: |
           set -euo pipefail
@@ -103,6 +107,8 @@ jobs:
           select_catalog redump/gc/discs "$GC_ENABLED"
           select_catalog redump/ps2/discs "$PS2_ENABLED"
           select_catalog redump/wii/discs "$WII_ENABLED"
+          select_catalog redump/psp/discs "$PSP_ENABLED"
+          select_catalog redump/tgcd/discs "$TGCD_ENABLED"
           select_catalog no-intro/snes/standard "$SNES_ENABLED"
           select_catalog no-intro/gb/standard "$GB_ENABLED"
           select_catalog no-intro/gbc/standard "$GBC_ENABLED"
@@ -114,6 +120,8 @@ jobs:
           select_catalog no-intro/gg/standard "$GG_ENABLED"
           select_catalog no-intro/tg16/standard "$TG16_ENABLED"
           select_catalog no-intro/32x/standard "$SEGA32X_ENABLED"
+          select_catalog no-intro/nds/standard "$NDS_ENABLED"
+          select_catalog no-intro/3ds/standard "$N3DS_ENABLED"
           ./bin/publisher "${args[@]}" > publication-summary.json
           {
             printf '### Catalog acquisition result\n\n```json\n'

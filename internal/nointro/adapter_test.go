@@ -547,3 +547,62 @@ func TestReviewedBatchThreeForms(t *testing.T) {
 		})
 	}
 }
+
+func TestReviewedDSForms(t *testing.T) {
+	for _, tc := range []struct{ key, id, name string }{
+		{"nds", "28", "Nintendo - Nintendo DS"},
+		{"3ds", "64", "Nintendo - Nintendo 3DS"},
+	} {
+		t.Run(tc.key, func(t *testing.T) {
+			c := catalog()
+			c.SystemID, c.ProviderSystemID, c.ExpectedName = tc.key, tc.id, tc.name+" (Decrypted)"
+			raw := strings.ReplaceAll(strings.ReplaceAll(selection(), "49", tc.id), catalog().ExpectedName, tc.name)
+			remove := []string{"collection", "inc_adult"}
+			if tc.key == "3ds" {
+				remove = append(remove, "license_0", "license_1", "license_2", "lifespan_1", "lifespan_2")
+			}
+			for _, control := range remove {
+				raw = regexp.MustCompile(`<input[^>]*name="`+control+`"[^>]*>`).ReplaceAllString(raw, "")
+			}
+			raw = strings.Replace(raw, "</form>", `<input type="radio" name="format" value="1" checked><input type="radio" name="numbered" value="0"><input type="radio" name="numbered" value="1"><input type="radio" name="inc_xroms" value="1"><input type="radio" name="inc_zroms" value="1"><input type="radio" name="inc_mia" value="1"></form>`, 1)
+			values, err := prepareForm([]byte(raw), c)
+			if err != nil || values.Get("format") != "0" || values.Get("numbered") != "0" {
+				t.Fatal("wrong representation or naming", values, err)
+			}
+			for _, name := range []string{"inc_xroms", "inc_zroms", "inc_nodump", "inc_mia", "inc_bios", "release_2", "storage_2"} {
+				if values.Get(name) != "1" {
+					t.Fatal("excluded category", name)
+				}
+				broken := regexp.MustCompile(`<input[^>]*name="`+name+`"[^>]*>`).ReplaceAllString(raw, "")
+				// MIA is optional on legacy forms; other reviewed controls are required.
+				if name != "inc_mia" {
+					if _, err := prepareForm([]byte(broken), c); err == nil {
+						t.Fatal("missing control accepted", name)
+					}
+				}
+			}
+			for _, name := range remove {
+				if values.Has(name) {
+					t.Fatal("invented control", name)
+				}
+			}
+			for _, broken := range []string{
+				strings.ReplaceAll(raw, `name="format" value="0"`, `name="format" value="1"`),
+				strings.Replace(raw, "</form>", `<input type="radio" name="format" value="0"></form>`, 1),
+				strings.ReplaceAll(raw, tc.name, "Wrong system"),
+			} {
+				if _, err := prepareForm([]byte(broken), c); err == nil {
+					t.Fatal("ambiguous or incorrect form accepted")
+				}
+			}
+			doc := bytes.ReplaceAll(bytes.ReplaceAll(document(), []byte("<id>49</id>"), []byte("<id>"+tc.id+"</id>")), []byte(catalog().ExpectedName), []byte(c.ExpectedName))
+			if _, _, err := Validate(doc, c); err != nil {
+				t.Fatal(err)
+			}
+			wrong := bytes.ReplaceAll(doc, []byte("(Decrypted)"), []byte("(Encrypted)"))
+			if _, _, err := Validate(wrong, c); err == nil {
+				t.Fatal("encrypted DAT accepted")
+			}
+		})
+	}
+}
