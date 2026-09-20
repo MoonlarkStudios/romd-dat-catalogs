@@ -32,6 +32,9 @@ func runWithAcquirer(args []string, out, errOut io.Writer, adapter acquirer) err
 	return runWithAdapters(args, out, errOut, adapter, nointro.New())
 }
 
+// MaxSelectedCatalogs bounds combined active and paused selections across providers.
+const MaxSelectedCatalogs = 32
+
 // catalogFlags preserves operator order without allowing implicit discovery.
 type catalogFlags []string
 
@@ -58,8 +61,11 @@ func runWithAdapters(args []string, out, errOut io.Writer, adapter acquirer, noI
 		return err
 	}
 	selected := append(append(catalogFlags{}, active...), pauses...)
-	if *output == "" || (len(selected) == 0 && (f.NArg() != 1 || *paused)) || (len(selected) > 0 && f.NArg() != 0) || len(selected) > 25 {
+	if *output == "" || (len(selected) == 0 && (f.NArg() != 1 || *paused)) || (len(selected) > 0 && f.NArg() != 0) {
 		return errors.New("usage: publisher --output DIR MANIFEST | --catalog ID [--catalog ID ...] [--pause-catalog ID] [--definitions DIR] [--paused]")
+	}
+	if len(selected) > MaxSelectedCatalogs {
+		return fmt.Errorf("at most %d catalog selections are allowed", MaxSelectedCatalogs)
 	}
 	if len(selected) == 0 {
 		attempts, err := publisher.ReadManifest(f.Arg(0))

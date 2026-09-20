@@ -89,3 +89,16 @@ acquisitions also passed with the exact qualified hashes. NES returned
 Production publication and isolated ROMD acceptance are pending and are not
 implied by local qualification. No ROMD source, schema, API or runtime changes
 are required for this catalog batch.
+
+
+## Full-registry release guard
+
+The initial release run 35478341726 stopped before acquisition or publication:
+the CLI's historical combined selection limit was 25, while this registry has
+26 catalogs. The existing live site was unchanged. The CLI limit is now bounded
+at 32 combined active/paused selections; per-provider request pacing and adapter
+limits are unchanged. A new offline test runs every current definition through
+both active provider routing and all-paused mode, so future registry growth
+cannot silently outgrow the CLI. Oversized mixed selections fail before registry
+or network I/O. Full `mise run check` passed after the correction. The corrected
+implementation must be pinned before rerunning publication.

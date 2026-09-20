@@ -78,7 +78,9 @@ Upstream downloads and the disposable analysis remain outside Git.
 `publisher` accepts repeated `--catalog ID` and `--pause-catalog ID` flags.
 `--paused` remains compatible with the original single-selection CLI. Selection
 is explicit, duplicate/unknown IDs are rejected before network access, and the
-batch is limited to 25 catalogs. Manifest mode remains separate.
+batch was initially limited to 25 catalogs. Batch 7 raises the combined CLI
+selection bound to 32 and adds full-registry regression coverage. Manifest mode
+remains separate.
 
 One adapter per provider is reused across the selected catalogs. No-Intro's
 five-second request-start gap spans catalog boundaries. A returned retry deadline
