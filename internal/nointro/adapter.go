@@ -23,6 +23,20 @@ import (
 const formLimit = 1 << 20
 const requestGap = 5 * time.Second
 
+// Datomatic serves this notice while an official export is being generated.
+// It is an upstream availability failure, not evidence of a changed form.
+func exportPending(raw []byte) bool {
+	for _, f := range forms.FindAllStringSubmatch(string(raw), -1) {
+		a, err := attrs(f[1])
+		if err == nil && a["name"] == "main_form" &&
+			strings.Contains(f[2], "The requested file is temporarily not available.") &&
+			strings.Contains(f[2], "it's added to the queue.") {
+			return true
+		}
+	}
+	return false
+}
+
 var number = regexp.MustCompile(`^[1-9][0-9]{0,5}$`)
 
 type Result struct {
@@ -147,13 +161,19 @@ func (a *Adapter) Acquire(ctx context.Context, id string, c definitions.Catalog,
 	if resp.StatusCode != 200 {
 		return fail("unexpected_redirect")
 	}
+	if exportPending(form) {
+		return fail("upstream_pending")
+	}
 	values, err := prepareForm(form, c)
 	if err != nil {
 		return fail("form_changed")
 	}
-	_, resp, code = request(source, values, formLimit)
+	form, resp, code = request(source, values, formLimit)
 	if code != "" {
 		return fail(code)
+	}
+	if resp.StatusCode == 200 && exportPending(form) {
+		return fail("upstream_pending")
 	}
 	if resp.StatusCode != 302 {
 		return fail("prepare_failed")
@@ -168,6 +188,9 @@ func (a *Adapter) Acquire(ctx context.Context, id string, c definitions.Catalog,
 	}
 	if resp.StatusCode != 200 {
 		return fail("unexpected_redirect")
+	}
+	if exportPending(form) {
+		return fail("upstream_pending")
 	}
 	values, err = downloadForm(form)
 	if err != nil {

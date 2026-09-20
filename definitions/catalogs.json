@@ -240,5 +240,49 @@
       "minimumGames": 1900,
       "minimumRoms": 1900
     }
+  },
+  "redump/xbox/discs": {
+    "systemId": "xbox",
+    "provider": "redump",
+    "providerSystemId": "xbox",
+    "representation": "discs",
+    "expectedName": "Microsoft - Xbox",
+    "validation": {
+      "minimumGames": 2500,
+      "minimumRoms": 2500
+    }
+  },
+  "redump/x360/discs": {
+    "systemId": "x360",
+    "provider": "redump",
+    "providerSystemId": "xbox360",
+    "representation": "discs",
+    "expectedName": "Microsoft - Xbox 360",
+    "validation": {
+      "minimumGames": 3400,
+      "minimumRoms": 3400
+    }
+  },
+  "redump/ps3/discs": {
+    "systemId": "ps3",
+    "provider": "redump",
+    "providerSystemId": "ps3",
+    "representation": "discs",
+    "expectedName": "Sony - PlayStation 3",
+    "validation": {
+      "minimumGames": 4200,
+      "minimumRoms": 4200
+    }
+  },
+  "redump/wiiu/discs": {
+    "systemId": "wiiu",
+    "provider": "redump",
+    "providerSystemId": "wiiu",
+    "representation": "discs",
+    "expectedName": "Nintendo - Wii U",
+    "validation": {
+      "minimumGames": 500,
+      "minimumRoms": 500
+    }
   }
 }

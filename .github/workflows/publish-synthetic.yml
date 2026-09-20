@@ -70,6 +70,10 @@ jobs:
         env:
           GC_ENABLED: ${{ vars.REDUMP_GC_PUBLISH_ENABLED }}
           PS2_ENABLED: ${{ vars.REDUMP_PS2_PUBLISH_ENABLED }}
+          XBOX_ENABLED: ${{ vars.REDUMP_XBOX_PUBLISH_ENABLED }}
+          X360_ENABLED: ${{ vars.REDUMP_X360_PUBLISH_ENABLED }}
+          PS3_ENABLED: ${{ vars.REDUMP_PS3_PUBLISH_ENABLED }}
+          WIIU_ENABLED: ${{ vars.REDUMP_WIIU_PUBLISH_ENABLED }}
           PSP_ENABLED: ${{ vars.REDUMP_PSP_PUBLISH_ENABLED }}
           TGCD_ENABLED: ${{ vars.REDUMP_TGCD_PUBLISH_ENABLED }}
           WII_ENABLED: ${{ vars.REDUMP_WII_PUBLISH_ENABLED }}
@@ -107,6 +111,10 @@ jobs:
           select_catalog redump/gc/discs "$GC_ENABLED"
           select_catalog redump/ps2/discs "$PS2_ENABLED"
           select_catalog redump/wii/discs "$WII_ENABLED"
+          select_catalog redump/xbox/discs "$XBOX_ENABLED"
+          select_catalog redump/x360/discs "$X360_ENABLED"
+          select_catalog redump/ps3/discs "$PS3_ENABLED"
+          select_catalog redump/wiiu/discs "$WIIU_ENABLED"
           select_catalog redump/psp/discs "$PSP_ENABLED"
           select_catalog redump/tgcd/discs "$TGCD_ENABLED"
           select_catalog no-intro/snes/standard "$SNES_ENABLED"
