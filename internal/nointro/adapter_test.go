@@ -606,3 +606,58 @@ func TestReviewedDSForms(t *testing.T) {
 		})
 	}
 }
+
+func TestQueuedExportRetainsArtifact(t *testing.T) {
+	const pending = `<form name="main_form" method="post" action=""><p><b>The requested file is temporarily not available.</b><br>Don't worry, it's added to the queue.</p></form>`
+	for _, at := range []int{1, 2, 3} {
+		t.Run(fmt.Sprint(at), func(t *testing.T) {
+			step := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				step++
+				if step == at {
+					io.WriteString(w, pending)
+					return
+				}
+				if step == 1 {
+					io.WriteString(w, selection())
+					return
+				}
+				if step == 2 {
+					w.Header().Set("Location", "index.php?page=manager&s=49&download=7")
+					w.WriteHeader(302)
+					return
+				}
+				t.Error("unexpected request after queued export")
+			}))
+			defer server.Close()
+			state := filepath.Join(t.TempDir(), "state")
+			path := filepath.Join(t.TempDir(), "original.dat")
+			if err := os.WriteFile(path, document(), 0600); err != nil {
+				t.Fatal(err)
+			}
+			original, err := publisher.Publish(state, []publisher.Attempt{{CatalogID: "no-intro/snes/standard", ExpectedName: catalog().ExpectedName, SourceURL: SourceURL("49"), Path: &path}}, "https://example.invalid/", publisher.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			a := newAdapter(server.URL, server.Client().Transport, 0)
+			r, err := a.Acquire(context.Background(), "no-intro/snes/standard", catalog(), filepath.Join(t.TempDir(), "input"))
+			if err != nil || r.Code != "upstream_pending" || r.Attempt.Path != nil || step != at || r.Attempt.RetryAt != nil {
+				t.Fatal(r.Code, err, step)
+			}
+			after, err := publisher.Publish(state, []publisher.Attempt{r.Attempt}, "https://example.invalid/", publisher.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			beforeCatalog, afterCatalog := original.Catalogs["no-intro/snes/standard"], after.Catalogs["no-intro/snes/standard"]
+			if afterCatalog.Health != "failed" || *beforeCatalog.Artifact != *afterCatalog.Artifact || len(original.Events) != len(after.Events) {
+				t.Fatal("queued export did not retain the active artifact")
+			}
+		})
+	}
+	if exportPending([]byte(`<form name="shoutbox">The requested file is temporarily not available. Don't worry, it's added to the queue.</form>`)) {
+		t.Fatal("unrelated page content classified as export state")
+	}
+	if exportPending([]byte(`<form name="main_form">The requested file is temporarily not available.</form>`)) {
+		t.Fatal("partial notice accepted")
+	}
+}

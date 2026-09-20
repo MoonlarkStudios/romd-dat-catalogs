@@ -6,7 +6,8 @@ belongs in ROMD's library layer.
 
 **Current status: 22 signed catalogs are live: PSX, SNES, Game Boy, Game Boy Color, Game Boy Advance, NES (Headered), Genesis, N64 (BigEndian), Master System, Game Gear, PC Engine/TurboGrafx-16, 32X, Saturn, Sega CD, Dreamcast, GameCube, PlayStation 2, Wii, Nintendo DS (Decrypted), Nintendo 3DS (Decrypted), PSP and PC Engine CD/TurboGrafx-CD.**
 The September 19 verification found all newly requested catalogs healthy; NES
-retains its last working DAT pending review of an upstream form change.
+retains its last working DAT while Datomatic regenerates its export; see the
+[queued-export diagnosis](docs/redump-xbox-ps3-wiiu-qualification.md#nes-availability-diagnosis).
 See the [SNES closeout and expansion plan](docs/catalog-expansion-plan.md).
 The Game Boy family has [passed acquisition, public membership and isolated
 ROMD catalog acceptance](docs/nointro-handheld-qualification.md).

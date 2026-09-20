@@ -26,3 +26,29 @@ then removed and the validated test restored.
 Agent guidance: measure provider admission at the client boundary. Do not relax
 upstream pacing, increase arrival-time tolerances, or accept a retry-only green
 run as a fix for this measurement error.
+
+
+## Datomatic queued exports were reported as changed forms
+
+Status: MITIGATED
+
+Command: `./bin/publisher --output /tmp/nes-check --definitions definitions --catalog no-intro/nes/standard`
+
+Root cause: on 2026-09-20 UTC, a bounded capture of the official anonymous NES
+selection response showed an explicit temporary-unavailability/export-queue
+notice inside `main_form`. The normal full form still passes strict validation.
+The old adapter classified the missing controls as `form_changed` (or a failed
+preparation as `prepare_failed`), which did not distinguish provider availability
+from actual form-contract drift.
+
+Change: the reviewed queue notice now produces `upstream_pending` at selection,
+preparation and manager stages. Synthetic tests cover each stage, no extra
+requests, no candidate output, and last-artifact/event retention. Unrelated forms
+and partial notices do not match. No retry deadline is invented, no validation is
+relaxed, and no automatic retry loop is added.
+
+Agent guidance: inspect the provider response before declaring a parser change.
+Do not weaken form checks or repeatedly retry an export that is queued upstream.
+Retain the working artifact and verify actual healthy acquisition once generation
+finishes. The specific diagnostic is in workflow output; signed public health
+continues to use the existing generic acquisition-failure contract.
