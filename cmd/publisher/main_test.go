@@ -398,3 +398,66 @@ func TestUnselectedCatalogCooldownDoesNotBlockOtherProvider(t *testing.T) {
 		t.Fatal("new selection lost cooldown or invented content")
 	}
 }
+
+func TestEntireConfiguredRegistry(t *testing.T) {
+	registry, err := definitions.LoadSource("../../definitions")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, paused := range []bool{false, true} {
+		t.Run(fmt.Sprint("paused=", paused), func(t *testing.T) {
+			redumpAdapter, noIntro := &captureAcquirer{}, &captureNoIntro{}
+			state := filepath.Join(t.TempDir(), "state")
+			args := []string{"--output", state, "--definitions", "../../definitions"}
+			if paused {
+				args = append(args, "--paused")
+			}
+			redumpCount, noIntroCount := 0, 0
+			for id, c := range registry.Catalogs {
+				args = append(args, "--catalog", id)
+				if c.Provider == "redump" {
+					redumpCount++
+				} else {
+					noIntroCount++
+				}
+			}
+			var out, diagnostics bytes.Buffer
+			if err := runWithAdapters(args, &out, &diagnostics, redumpAdapter, noIntro); err != nil {
+				t.Fatal(err)
+			}
+			if paused {
+				if redumpAdapter.calls != 0 || noIntro.calls != 0 {
+					t.Fatal("paused registry made requests")
+				}
+			} else {
+				if redumpAdapter.calls != redumpCount || noIntro.calls != noIntroCount {
+					t.Fatal("incomplete provider routing")
+				}
+				snapshot, err := publisher.LoadSnapshot(state)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(snapshot.Catalogs) != len(registry.Catalogs) {
+					t.Fatal("incomplete full-registry publication")
+				}
+			}
+		})
+	}
+}
+
+func TestCombinedSelectionLimitBeforeNetwork(t *testing.T) {
+	args := []string{"--output", filepath.Join(t.TempDir(), "state"), "--definitions", "missing"}
+	for i := 0; i < MaxSelectedCatalogs+1; i++ {
+		flag := "--catalog"
+		if i%2 == 0 {
+			flag = "--pause-catalog"
+		}
+		args = append(args, flag, fmt.Sprintf("redump/system%d/discs", i))
+	}
+	redumpAdapter, noIntro := &captureAcquirer{}, &captureNoIntro{}
+	var out bytes.Buffer
+	err := runWithAdapters(args, &out, &out, redumpAdapter, noIntro)
+	if err == nil || !strings.Contains(err.Error(), "at most 32 catalog selections") || redumpAdapter.calls != 0 || noIntro.calls != 0 {
+		t.Fatal("selection bound not enforced before I/O", err)
+	}
+}
