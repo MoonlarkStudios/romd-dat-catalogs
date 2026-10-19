@@ -43,10 +43,17 @@ owns [DAT acquisition definitions](docs/system-definitions.md) and vendors a ver
 ROMD system-key export to validate explicit catalog mappings. Signed publications
 carry DAT catalog definitions; they do not update application reference data.
 
+## Source development
+
+Development now uses a private Forgejo repository with `next` as its default
+branch. Reviewed `main` is published to this GitHub repository. The production
+DAT data repository and its pinned GitHub Pages workflow remain separate. See
+[the source workflow](docs/source-workflow.md) before changing publication.
+
 ## Run
 
 Use mise on macOS or Linux (POSIX file locking required). `.mise.toml` pins
-Go 1.27.1, actionlint, and ShellCheck for development and CI. `go.mod` records
+Go 1.27.2, actionlint, and ShellCheck for development and CI. `go.mod` records
 the minimum language version; `GOTOOLCHAIN=local` prevents silent toolchain
 switching. Each CLI builds into a standalone executable:
 
