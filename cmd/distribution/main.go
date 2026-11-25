@@ -187,12 +187,16 @@ func run(args []string) error {
 		if args[0] == "catalogs" && (*id != "" || *name != "") {
 			return errors.New("catalogs does not select a DAT")
 		}
-		var client *http.Client
+		var metadataClient, assetClient *http.Client
 		if *bundle != "" {
-			client = distribution.BundleClient(*bundle)
+			metadataClient = distribution.BundleClient(*bundle)
+			assetClient = metadataClient
 			*site = distribution.BundleSite
 		} else if !strings.HasPrefix(*site, "https://") {
 			return errors.New("HTTPS site required")
+		} else {
+			metadataClient = distribution.NewMirrorClient(30 * time.Second)
+			assetClient = distribution.NewMirrorClient(60 * time.Second)
 		}
 		rootBytes, e := os.ReadFile(*root)
 		if e != nil {
@@ -210,7 +214,7 @@ func run(args []string) error {
 			return errors.New("candidate cache is in use; retry after the active reader finishes")
 		}
 		defer syscall.Flock(int(gate.Fd()), syscall.LOCK_UN)
-		index, e := distribution.RefreshIndex(rootBytes, strings.TrimRight(*site, "/"), *cache, client)
+		index, e := distribution.RefreshIndex(rootBytes, strings.TrimRight(*site, "/"), *cache, metadataClient)
 		if e != nil {
 			return e
 		}
@@ -220,7 +224,7 @@ func run(args []string) error {
 			}
 			return writeCatalogDirectory(*out, index)
 		}
-		candidate, document, e := distribution.ReadCandidate(index, *id, *name, client)
+		candidate, document, e := distribution.ReadCandidate(index, *id, *name, assetClient)
 		if e != nil {
 			return e
 		}
