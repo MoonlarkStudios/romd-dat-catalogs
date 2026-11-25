@@ -61,11 +61,13 @@ type Result struct {
 }
 
 type Adapter struct {
-	origin string
-	client *http.Client
-	gate   chan struct{}
-	next   time.Time
-	gap    time.Duration
+	origin              string
+	client              *http.Client
+	approvedTermsSHA256 string
+	termsBlock          string
+	gate                chan struct{}
+	next                time.Time
+	gap                 time.Duration
 }
 
 func SourceURL(system string) string {
@@ -74,6 +76,28 @@ func SourceURL(system string) string {
 func New() *Adapter {
 	return newAdapter("https://datomatic.no-intro.org", http.DefaultTransport, requestGap)
 }
+func NewWithTermsApproval(sha256 string) (*Adapter, error) {
+	a := New()
+	if err := a.setTermsApproval(sha256); err != nil {
+		return nil, err
+	}
+	return a, nil
+}
+
+func (a *Adapter) setTermsApproval(sha256 string) error {
+	if sha256 == "" {
+		return nil
+	}
+	if !lowercaseHex64.MatchString(sha256) {
+		return errors.New("No-Intro terms approval must be a lowercase SHA-256 digest")
+	}
+	a.approvedTermsSHA256 = sha256
+	// The upstream records consent in the anonymous session. Keep it only for
+	// this serialized publisher run and never export the cookies.
+	a.client.Jar, _ = cookiejar.New(nil)
+	return nil
+}
+
 func newAdapter(origin string, transport http.RoundTripper, gap time.Duration) *Adapter {
 	return &Adapter{origin: origin, gap: gap, gate: make(chan struct{}, 1), client: &http.Client{Transport: transport, Timeout: 30 * time.Second,
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}}
@@ -122,10 +146,10 @@ func (a *Adapter) acquire(ctx context.Context, id string, c definitions.Catalog,
 	case <-ctx.Done():
 		return r, ctx.Err()
 	}
-	// Anonymous session cookies live only for this acquisition and are never logged.
-	jar, _ := cookiejar.New(nil)
 	client := *a.client
-	client.Jar = jar
+	if client.Jar == nil {
+		client.Jar, _ = cookiejar.New(nil)
+	}
 	fail := func(code string) (Result, error) {
 		r.Code = code
 		r.Attempt.Failure = &r.Code
@@ -133,6 +157,9 @@ func (a *Adapter) acquire(ctx context.Context, id string, c definitions.Catalog,
 			r.Diagnostics[len(r.Diagnostics)-1].Outcome = code
 		}
 		return r, nil
+	}
+	if a.termsBlock != "" {
+		return fail(a.termsBlock)
 	}
 	if time.Until(a.next) > a.gap {
 		stamp := a.next.UTC().Format(time.RFC3339Nano)
@@ -195,9 +222,11 @@ func (a *Adapter) acquire(ctx context.Context, id string, c definitions.Catalog,
 		b, err := io.ReadAll(io.LimitReader(resp.Body, int64(limit)+1))
 		diagnostic.Bytes = len(b)
 		diagnostic.BodySHA256 = fmt.Sprintf("%x", sha256.Sum256(b))
-		if step != "download" {
+		if step != "download" && step != "terms_document" {
 			diagnostic.PageKind = "unrecognized"
-			if exportPending(b) {
+			if termsForm(b) != nil {
+				diagnostic.PageKind = "terms_prompt"
+			} else if exportPending(b) {
 				diagnostic.PageKind = "queued_export"
 			} else if _, e := prepareForm(b, c); e == nil {
 				diagnostic.PageKind = "selection_form"
@@ -219,6 +248,43 @@ func (a *Adapter) acquire(ctx context.Context, id string, c definitions.Catalog,
 	}
 	if resp.StatusCode != 200 {
 		return fail("unexpected_redirect")
+	}
+	if consent := termsForm(form); consent != nil {
+		if a.approvedTermsSHA256 == "" {
+			a.termsBlock = "terms_acceptance_required"
+			return fail(a.termsBlock)
+		}
+		terms, response, code := request("terms_document", a.origin+"/terms.html", nil, formLimit)
+		if code != "" {
+			return fail(code)
+		}
+		if response.StatusCode != http.StatusOK || publisher.Hash(terms) != a.approvedTermsSHA256 {
+			a.termsBlock = "terms_changed"
+			return fail(a.termsBlock)
+		}
+		accepted, response, code := request("terms_accept", source, consent, formLimit)
+		if code != "" {
+			return fail(code)
+		}
+		if response.StatusCode == http.StatusFound {
+			redirect, err := response.Location()
+			if err != nil || redirect.Scheme+"://"+redirect.Host != a.origin || redirect.Path != "/index.php" {
+				return fail("unexpected_redirect")
+			}
+		} else if termsForm(accepted) != nil {
+			return fail("terms_acceptance_rejected")
+		}
+		// Fetch the original system URL using the same anonymous session.
+		form, resp, code = request("selection", source, nil, formLimit)
+		if code != "" {
+			return fail(code)
+		}
+		if resp.StatusCode != http.StatusOK {
+			return fail("unexpected_redirect")
+		}
+		if termsForm(form) != nil {
+			return fail("terms_acceptance_rejected")
+		}
 	}
 	if exportPending(form) {
 		return fail("upstream_pending")

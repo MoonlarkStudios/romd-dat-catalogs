@@ -21,7 +21,11 @@ type acquirer interface {
 }
 
 func run(args []string, out, errOut io.Writer) error {
-	return runWithAcquirer(args, out, errOut, redump.New())
+	adapter, err := nointro.NewWithTermsApproval(os.Getenv("NOINTRO_APPROVED_TERMS_SHA256"))
+	if err != nil {
+		return err
+	}
+	return runWithAdapters(args, out, errOut, redump.New(), adapter)
 }
 
 type noIntroAcquirer interface {

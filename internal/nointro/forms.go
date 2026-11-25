@@ -19,6 +19,58 @@ var prepareName = regexp.MustCompile(`^download_dat_[0-9]{4}-[0-9]{2}-[0-9]{2}$`
 var downloadName = regexp.MustCompile(`^[0-9a-f]{32}$`)
 var selects = regexp.MustCompile(`(?is)<select\b([^>]*)>`)
 var options = regexp.MustCompile(`(?is)<option\b([^>]*)>([^<]*)</option\s*>`)
+var lowercaseHex64 = regexp.MustCompile(`^[0-9a-f]{64}$`)
+
+func csrfToken(input map[string]string) string {
+	if input["name"] == "csrf_token" && input["type"] == "hidden" && lowercaseHex64.MatchString(input["value"]) {
+		return input["value"]
+	}
+	return ""
+}
+
+// Match the official in-session terms prompt and its exact controls. Another
+// form, login screen or challenge never authorizes a submission.
+func termsForm(raw []byte) url.Values {
+	page := string(raw)
+	if !strings.Contains(page, "To use DAT-o-MATIC, please read and accept our Terms and Conditions") ||
+		!strings.Contains(page, `href="terms.html"`) {
+		return nil
+	}
+	matches := forms.FindAllStringSubmatch(page, -1)
+	if len(matches) != 1 {
+		return nil
+	}
+	form, err := attrs(matches[0][1])
+	if err != nil || form["method"] != "post" || form["action"] != "" {
+		return nil
+	}
+	controls := inputs.FindAllStringSubmatch(matches[0][2], -1)
+	if len(controls) != 2 {
+		return nil
+	}
+	values := make(url.Values)
+	for _, control := range controls {
+		a, err := attrs(control[1])
+		if err != nil {
+			return nil
+		}
+		if _, disabled := a["disabled"]; disabled {
+			return nil
+		}
+		switch {
+		case csrfToken(a) != "":
+			values.Set("csrf_token", csrfToken(a))
+		case a["name"] == "terms_accept" && a["type"] == "submit" && a["value"] == "I accept":
+			values.Set("terms_accept", a["value"])
+		default:
+			return nil
+		}
+	}
+	if len(values) != 2 {
+		return nil
+	}
+	return values
+}
 
 func attrs(raw string) (map[string]string, error) {
 	a := map[string]string{}
@@ -159,7 +211,7 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 		delete(values, "inc_nodump")
 	}
 	found := map[string]int{}
-	submit := ""
+	submit, token := "", ""
 	for _, i := range inputs.FindAllStringSubmatch(content, -1) {
 		a, err := attrs(i[1])
 		if err != nil {
@@ -172,12 +224,19 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 			return nil, bad
 		}
 		name := a["name"]
+		if name == "csrf_token" {
+			if token != "" || csrfToken(a) == "" {
+				return nil, bad
+			}
+			token = csrfToken(a)
+			continue
+		}
 		// Some systems expose a missing-in-action filter. Include these records
 		// with canonical names; legacy forms without this control remain valid.
 		if name == "inc_mia" || (c.ProviderSystemID == "24" && name == "inc_nodump") {
 			values.Set(name, "1")
 		}
-		if prepareName.MatchString(name) && a["type"] == "submit" && a["value"] == "Prepare" {
+		if (prepareName.MatchString(name) || name == "download_request") && a["type"] == "submit" && a["value"] == "Prepare" {
 			if submit != "" {
 				return nil, bad
 			}
@@ -199,7 +258,7 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 		}
 		return nil, bad
 	}
-	if submit == "" {
+	if submit == "" || (submit == "download_request" && token == "") {
 		return nil, bad
 	}
 	for name := range values {
@@ -208,17 +267,21 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 		}
 	}
 	values.Set(submit, "Prepare")
+	if token != "" {
+		values.Set("csrf_token", token)
+	}
 	return values, nil
 }
 func downloadForm(raw []byte) (url.Values, error) {
 	bad := errors.New("unrecognized download form")
-	var selected string
+	var selected url.Values
 	for _, f := range forms.FindAllStringSubmatch(string(raw), -1) {
 		a, err := attrs(f[1])
 		if err != nil {
 			return nil, bad
 		}
-		for _, i := range inputs.FindAllStringSubmatch(f[2], -1) {
+		controls := inputs.FindAllStringSubmatch(f[2], -1)
+		for _, i := range controls {
 			control, err := attrs(i[1])
 			if err != nil {
 				return nil, bad
@@ -235,14 +298,35 @@ func downloadForm(raw []byte) (url.Values, error) {
 			if _, hidden := control["hidden"]; hidden {
 				return nil, bad
 			}
-			if control["style"] != "" || control["type"] != "submit" || !downloadName.MatchString(control["name"]) || a["method"] != "post" || a["action"] != "" || len(inputs.FindAllStringSubmatch(f[2], -1)) != 1 || selected != "" {
+			if control["style"] != "" || control["type"] != "submit" || a["method"] != "post" || a["action"] != "" || selected != nil {
 				return nil, bad
 			}
-			selected = control["name"]
+			name := control["name"]
+			switch {
+			case downloadName.MatchString(name) && len(controls) == 1:
+				selected = url.Values{name: {"Download!!"}}
+			case name == "download_file" && len(controls) == 2:
+				var token string
+				for _, field := range controls {
+					attr, err := attrs(field[1])
+					if err != nil {
+						return nil, bad
+					}
+					if _, disabled := attr["disabled"]; !disabled && csrfToken(attr) != "" {
+						token = csrfToken(attr)
+					}
+				}
+				if token == "" {
+					return nil, bad
+				}
+				selected = url.Values{name: {"Download!!"}, "csrf_token": {token}}
+			default:
+				return nil, bad
+			}
 		}
 	}
-	if selected == "" {
+	if selected == nil {
 		return nil, bad
 	}
-	return url.Values{selected: {"Download!!"}}, nil
+	return selected, nil
 }
