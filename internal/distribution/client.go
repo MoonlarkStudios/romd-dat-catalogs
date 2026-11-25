@@ -19,10 +19,17 @@ import (
 // RefreshIndex starts from an explicitly trusted root, never a root fetched on
 // first use. Keep cache across refreshes for rollback detection. Call serially.
 func RefreshIndex(root []byte, site, cache string, client *http.Client) (Index, error) {
-	var index Index
+	up, e := refreshUpdater(root, site, cache, client)
+	if e != nil {
+		return Index{}, e
+	}
+	return readIndex(up)
+}
+
+func refreshUpdater(root []byte, site, cache string, client *http.Client) (*updater.Updater, error) {
 	cfg, e := config.New(site+"/metadata/", root)
 	if e != nil {
-		return index, e
+		return nil, e
 	}
 	cfg.RemoteTargetsURL = site + "/targets/"
 	cfg.LocalMetadataDir = filepath.Join(cache, "metadata")
@@ -31,18 +38,23 @@ func RefreshIndex(root []byte, site, cache string, client *http.Client) (Index, 
 		client = &http.Client{Timeout: 30 * time.Second}
 	}
 	if e = cfg.SetDefaultFetcherHTTPClient(client); e != nil {
-		return index, e
+		return nil, e
 	}
 	if e = cfg.SetDefaultFetcherRetry(time.Millisecond, 1); e != nil {
-		return index, e
+		return nil, e
 	}
 	up, e := updater.New(cfg)
 	if e != nil {
-		return index, e
+		return nil, e
 	}
 	if e = up.Refresh(); e != nil {
-		return index, e
+		return nil, e
 	}
+	return up, nil
+}
+
+func readIndex(up *updater.Updater) (Index, error) {
+	var index Index
 	target, e := up.GetTargetInfo("catalog.json")
 	if e != nil {
 		return index, e

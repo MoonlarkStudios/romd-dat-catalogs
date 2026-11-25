@@ -181,6 +181,57 @@ a precise GitHub quota reading. Also inspect current document sizes and actual
 change frequency before broader coverage. No cleanup engine, bounded history,
 or incremental patch format is introduced. Issue #12 tracks growth measurement.
 
+## Independent mirror monitoring
+
+Run the signed reader's `monitor` command on an always-on host with a scheduler
+independent of GitHub Actions. It verifies the directory and fetches Genesis
+through the same TUF and DAT checks as ROMD. It needs public HTTPS access, the
+reviewed reader, the independently pinned public root, and a dedicated
+persistent cache. The cache retains TUF rollback protection and the last
+authenticated publication across runs.
+
+```sh
+catalog-reader monitor --root /opt/romd-dat-mirror-monitor/1.root.json \
+  --site https://moonlarkstudios.github.io/romd-dat-data \
+  --cache /var/lib/romd-dat-mirror-monitor \
+  --catalog no-intro/genesis/standard --name 'Sega - Mega Drive - Genesis'
+```
+
+Each run emits one JSON report. `verified` covers the current signed directory
+and the downloaded DAT. `lastVerifiedPublication` and `secondsUntilExpiry`
+describe the last authenticated directory when the current fetch fails.
+`upstreamHealth` and `lastUpstreamSuccess` come from the current signed catalog.
+A correctly signed retained DAT can verify while the provider's refresh is
+delayed.
+
+The reader retries transient HTTP errors within each run. An exhausted first
+check records a failure and exits successfully so a brief outage stays quiet.
+Two consecutive failed checks, authenticated expiry within 12 hours, or a TUF
+expiry rejection set `alert` and exit nonzero. The failure count stops at two
+and resets after successful verification. Configuration and cache I/O errors
+also exit nonzero.
+
+On Linux, install the reviewed reader and public root in
+`/opt/romd-dat-mirror-monitor/` and the
+[systemd service](../templates/monitor/romd-dat-mirror-monitor.service) and
+[timer](../templates/monitor/romd-dat-mirror-monitor.timer) in
+`/etc/systemd/system/`. The service keeps its state in a private
+systemd-managed directory. Point the service's `OnFailure=` drop-in or your
+monitoring system at an existing operator notification route before enabling
+the timer. Configure that receiver to group repeats under the same incident.
+
+```sh
+sudo systemctl daemon-reload
+sudo systemctl start romd-dat-mirror-monitor.service
+journalctl -u romd-dat-mirror-monitor.service -o cat -n 20
+sudo systemctl enable --now romd-dat-mirror-monitor.timer
+```
+
+Check that the first journal report verifies the current publication. Keep the
+cache when updating the binary. For an expiry alert, inspect the scheduled
+publishing run and restore regular publication before the verified deadline.
+Use the checkpoint recovery below if the metadata already expired.
+
 ## Publication failure and pause
 
 Provider failures are signed as failed health while keeping the last document
