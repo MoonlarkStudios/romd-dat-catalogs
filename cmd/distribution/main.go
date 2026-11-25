@@ -18,7 +18,7 @@ import (
 
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("commands: init, rotate, stage, restore, verify-assets, candidate, catalogs, export-data, validate-definitions")
+		return errors.New("commands: init, rotate, stage, restore, recover-publisher, verify-assets, candidate, catalogs, export-data, validate-definitions")
 	}
 	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	switch args[0] {
@@ -143,6 +143,30 @@ func run(args []string) error {
 			return errors.New("deployed publication version does not match expected version")
 		}
 		return distribution.RestorePublication(index, *state, nil)
+	case "recover-publisher":
+		root := fs.String("root", "trust/1.root.json", "independently pinned public root")
+		site := fs.String("site", "", "existing HTTPS publishing site")
+		state := fs.String("state", "output", "new publisher state directory")
+		version := fs.Int64("version", 0, "previously verified publication version")
+		repository := fs.String("data-repository", "", "repository of the verified publication")
+		commit := fs.String("data-commit", "", "immutable data commit from the verified publication")
+		digest := fs.String("index-sha256", "", "signed catalog index digest from the verified publication")
+		verifiedAt := fs.String("verified-at", "", "time of successful deployment verification (RFC 3339)")
+		if err := fs.Parse(args[1:]); err != nil {
+			return err
+		}
+		at, err := time.Parse(time.RFC3339, *verifiedAt)
+		if err != nil || fs.NArg() != 0 || *state == "" {
+			return errors.New("recovery requires a verified deployment time and a new publisher state directory")
+		}
+		rootBytes, err := os.ReadFile(*root)
+		if err != nil {
+			return err
+		}
+		checkpoint := distribution.PublicationCheckpoint{
+			Version: *version, Repository: *repository, Commit: *commit, IndexHash: *digest, VerifiedAt: at,
+		}
+		return distribution.RecoverPublisher(rootBytes, *site, *state, checkpoint, nil)
 	case "candidate", "catalogs":
 		root := fs.String("root", "trust/1.root.json", "independently pinned public root")
 		site := fs.String("site", "", "HTTPS publisher site")

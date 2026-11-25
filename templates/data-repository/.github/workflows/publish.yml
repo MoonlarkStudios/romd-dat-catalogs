@@ -11,6 +11,10 @@ on:
         description: Old signed site for the first migration only; leave empty afterward
         type: string
         default: ''
+      recovery_checkpoint:
+        description: Last verified publication checkpoint for expiry recovery only
+        type: string
+        default: ''
   schedule:
     - cron: '37 4 * * *'
 
@@ -27,5 +31,6 @@ jobs:
       tooling_ref: '249ac9dd0bb25fd9ba2faf9eb9795ab963a16226'
       bootstrap: ${{ inputs.bootstrap || false }}
       migration_site: ${{ inputs.migration_site || '' }}
+      recovery_checkpoint: ${{ inputs.recovery_checkpoint || '' }}
     secrets:
       TUF_ONLINE_KEYS: ${{ secrets.TUF_ONLINE_KEYS }}

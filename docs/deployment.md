@@ -199,10 +199,28 @@ publication starts at 1. Moving repositories or rerunning a failed job therefore
 cannot reset the sequence. All data-repository publications use one concurrency
 group. There must be no simultaneous publisher at the old site during cutover.
 
-If metadata expires during an outage, restoration deliberately fails closed.
-Do not bootstrap or disable expiry checks. An operator must use a previously
-verified local state, refresh/rotate the root if necessary, and stage a higher
-version. Automatic outage recovery is deferred until demonstrated need.
+The scheduled restore retries transient Pages failures with a bounded delay.
+Retries switch to HTTP/1.1 because the Pages root probe has sometimes returned
+HTTP 503 over HTTP/2. Every attempt performs the same trust and freshness checks.
+
+If metadata expires during an outage, readers and scheduled restores fail
+closed. To resume publication, use the checkpoint printed in the last
+successful deployment verification summary. The checkpoint contains the
+publication version, immutable data commit, signed index SHA-256, and UTC time
+when verification succeeded. For an older deployment without a summary, confirm
+the version, data commit and verification time from its successful Actions run,
+and recover the corresponding index digest from that version's signed targets.
+Confirm that the checkpoint describes the latest successful deployment, then
+dispatch the data repository workflow with that checkpoint and leave bootstrap
+and migration unset.
+
+Recovery authenticates the deployed metadata chain as of the checkpoint time,
+requires a currently unexpired root, and checks the exact index and immutable
+data files. It refuses recovery if the data branch's DAT files differ from the
+checkpoint commit. It skips acquisition and signs the recovered catalog at a
+higher version using the current clock. The workflow verifies that version
+through the normal freshness checks after deployment. Scheduled runs and
+consumer reads continue to use current-time verification.
 
 ### Private key custody
 

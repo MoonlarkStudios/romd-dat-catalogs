@@ -15,6 +15,10 @@ on:
         description: Existing signed site to restore for the first data-repo deployment only
         type: string
         default: ''
+      recovery_checkpoint:
+        description: Manually verified checkpoint containing version, data commit, index SHA-256 and verification time
+        type: string
+        default: ''
     secrets:
       TUF_ONLINE_KEYS:
         required: true
@@ -62,11 +66,35 @@ jobs:
           SITE: ${{ steps.pages.outputs.base_url }}
           BOOTSTRAP: ${{ inputs.bootstrap }}
           MIGRATION_SITE: ${{ inputs.migration_site }}
+          RECOVERY_CHECKPOINT: ${{ inputs.recovery_checkpoint }}
+          DATA_REPOSITORY: ${{ github.repository }}
         run: |
-          ./bin/distribution restore --site "$SITE" --root trust/1.root.json --state output --bootstrap="$BOOTSTRAP" --migration-site "$MIGRATION_SITE"
+          set -euo pipefail
+          if [ -n "$RECOVERY_CHECKPOINT" ]; then
+            test "$GITHUB_EVENT_NAME" = workflow_dispatch
+            test "$BOOTSTRAP" = false
+            test -z "$MIGRATION_SITE"
+            [[ "$RECOVERY_CHECKPOINT" != *$'\n'* && "$RECOVERY_CHECKPOINT" != *$'\r'* ]]
+            read -r version commit digest verified_at extra <<< "$RECOVERY_CHECKPOINT"
+            test -z "$extra"
+            GODEBUG=http2client=0 ./bin/distribution recover-publisher --site "$SITE" --root trust/1.root.json --state output \
+              --version "$version" --data-repository "$DATA_REPOSITORY" --data-commit "$commit" --index-sha256 "$digest" --verified-at "$verified_at"
+            exit 0
+          fi
+          for attempt in 1 2 3 4 5 6; do
+            transport=''
+            if [ "$attempt" -gt 1 ]; then transport='http2client=0'; fi
+            if GODEBUG="$transport" ./bin/distribution restore --site "$SITE" --root trust/1.root.json --state output --bootstrap="$BOOTSTRAP" --migration-site "$MIGRATION_SITE"; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 6 ]; then sleep 5; fi
+          done
+          exit 1
       - name: Publish synthetic local candidate
+        if: inputs.recovery_checkpoint == ''
         run: ./bin/publisher --output output fixtures/manifest.json
       - name: Acquire enabled catalogs with shared provider pacing
+        if: inputs.recovery_checkpoint == ''
         env:
           GC_ENABLED: ${{ vars.REDUMP_GC_PUBLISH_ENABLED }}
           PS2_ENABLED: ${{ vars.REDUMP_PS2_PUBLISH_ENABLED }}
@@ -149,8 +177,15 @@ jobs:
           fetch-depth: 0
       - name: Commit changed documents
         id: data
+        env:
+          RECOVERY_CHECKPOINT: ${{ inputs.recovery_checkpoint }}
         run: |
           set -euo pipefail
+          if [ -n "$RECOVERY_CHECKPOINT" ]; then
+            read -r _ commit _ _ <<< "$RECOVERY_CHECKPOINT"
+            git -C data merge-base --is-ancestor "$commit" HEAD
+            git -C data diff --quiet "$commit" HEAD -- '*.dat'
+          fi
           ./bin/distribution export-data --state output --out data
           git -C data config user.name 'ROMD catalog publisher'
           git -C data config user.email 'catalog-publisher@users.noreply.github.com'
@@ -196,10 +231,16 @@ jobs:
         env:
           SITE: ${{ steps.pages.outputs.base_url }}
           VERSION: ${{ steps.stage.outputs.version }}
+          DATA_COMMIT: ${{ steps.data.outputs.commit }}
         run: |
           set -euo pipefail
           for attempt in 1 2 3 4 5 6; do
-            if ./bin/distribution restore --site "$SITE" --root trust/1.root.json --cache .verification-cache --state verified-output --expected-version "$VERSION"; then
+            transport=''
+            if [ "$attempt" -gt 1 ]; then transport='http2client=0'; fi
+            if GODEBUG="$transport" ./bin/distribution restore --site "$SITE" --root trust/1.root.json --cache .verification-cache --state verified-output --expected-version "$VERSION"; then
+              digest=$(jq -er '.signed.targets["catalog.json"].hashes.sha256' "staged/site/metadata/$VERSION.targets.json")
+              printf '\n### Verified publication checkpoint\n\n    %s %s %s %s\n' \
+                "$VERSION" "$DATA_COMMIT" "$digest" "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
             if [ "$attempt" -lt 6 ]; then sleep 5; fi
