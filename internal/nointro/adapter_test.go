@@ -366,6 +366,20 @@ func TestReviewedHandheldForms(t *testing.T) {
 			if tc.key == "gba" && (values.Get("numbered") != "0" || values.Get("inc_xroms") != "1" || values.Get("inc_zroms") != "1" || values.Has("inc_adult")) {
 				t.Fatal(values)
 			}
+			if tc.key == "gba" {
+				legacyControl := `<input type="radio" name="collection" value="0">`
+				if !strings.Contains(raw, legacyControl) || values.Get("collection") != "0" {
+					t.Fatal("legacy GBA form lost the complete collection option")
+				}
+				if _, err := prepareForm([]byte(strings.Replace(raw, legacyControl, `<input type="radio" name="collection" value="1">`, 1)), c); err == nil {
+					t.Fatal("GBA form without the complete collection option was accepted")
+				}
+				current, err := prepareForm([]byte(strings.Replace(raw, legacyControl, "", 1)), c)
+				delete(values, "collection")
+				if err != nil || current.Encode() != values.Encode() {
+					t.Fatal("current GBA form changed the complete export settings", err)
+				}
+			}
 			if _, err := prepareForm([]byte(raw), catalog()); err == nil {
 				t.Fatal("cross-system form accepted")
 			}
