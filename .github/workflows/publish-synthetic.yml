@@ -122,6 +122,7 @@ jobs:
           NDS_ENABLED: ${{ vars.NOINTRO_NDS_PUBLISH_ENABLED }}
           N3DS_ENABLED: ${{ vars.NOINTRO_3DS_PUBLISH_ENABLED }}
           SEGA32X_ENABLED: ${{ vars.NOINTRO_32X_PUBLISH_ENABLED }}
+          NOINTRO_APPROVED_TERMS_SHA256: ${{ vars.NOINTRO_APPROVED_TERMS_SHA256 }}
         run: |
           set -euo pipefail
           args=(--output output --definitions definitions)

@@ -19,6 +19,51 @@ var prepareName = regexp.MustCompile(`^download_dat_[0-9]{4}-[0-9]{2}-[0-9]{2}$`
 var downloadName = regexp.MustCompile(`^[0-9a-f]{32}$`)
 var selects = regexp.MustCompile(`(?is)<select\b([^>]*)>`)
 var options = regexp.MustCompile(`(?is)<option\b([^>]*)>([^<]*)</option\s*>`)
+var lowercaseSHA256 = regexp.MustCompile(`^[0-9a-f]{64}$`)
+
+// Match the official in-session terms prompt and its exact controls. Another
+// form, login screen or challenge never authorizes a submission.
+func termsForm(raw []byte) url.Values {
+	page := string(raw)
+	if !strings.Contains(page, "To use DAT-o-MATIC, please read and accept our Terms and Conditions") ||
+		!strings.Contains(page, `href="terms.html"`) {
+		return nil
+	}
+	matches := forms.FindAllStringSubmatch(page, -1)
+	if len(matches) != 1 {
+		return nil
+	}
+	form, err := attrs(matches[0][1])
+	if err != nil || form["method"] != "post" || form["action"] != "" {
+		return nil
+	}
+	controls := inputs.FindAllStringSubmatch(matches[0][2], -1)
+	if len(controls) != 2 {
+		return nil
+	}
+	values := make(url.Values)
+	for _, control := range controls {
+		a, err := attrs(control[1])
+		if err != nil {
+			return nil
+		}
+		if _, disabled := a["disabled"]; disabled {
+			return nil
+		}
+		switch {
+		case a["name"] == "csrf_token" && a["type"] == "hidden" && lowercaseSHA256.MatchString(a["value"]):
+			values.Set("csrf_token", a["value"])
+		case a["name"] == "terms_accept" && a["type"] == "submit" && a["value"] == "I accept":
+			values.Set("terms_accept", a["value"])
+		default:
+			return nil
+		}
+	}
+	if len(values) != 2 {
+		return nil
+	}
+	return values
+}
 
 func attrs(raw string) (map[string]string, error) {
 	a := map[string]string{}

@@ -222,6 +222,22 @@ higher version using the current clock. The workflow verifies that version
 through the normal freshness checks after deployment. Scheduled runs and
 consumer reads continue to use current-time verification.
 
+### DAT-o-MATIC terms approval
+
+DAT-o-MATIC can present an acceptance form before an anonymous DAT download.
+An operator must review and approve the current
+[terms and privacy policy](https://datomatic.no-intro.org/terms.html) for the
+publisher's scheduled use. Record the SHA-256 of the reviewed response bytes
+in the data repository's `NOINTRO_APPROVED_TERMS_SHA256` Actions variable
+after approval. The standalone publisher uses the same environment variable.
+
+When DAT-o-MATIC prompts, the publisher checks the official document against
+that digest before submitting the official form in the same anonymous session.
+The session stays in memory for one publisher run. A missing or changed digest
+requires operator review. The publisher retains the last working DAT in either
+case. Workflow diagnostics distinguish `terms_acceptance_required`,
+`terms_changed`, and `terms_acceptance_rejected`.
+
 ### Private key custody
 
 Back up private signing keys in an access-controlled secrets manager and verify
