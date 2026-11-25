@@ -212,6 +212,7 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 	}
 	found := map[string]int{}
 	submit, token := "", ""
+	collectionOffered := false
 	for _, i := range inputs.FindAllStringSubmatch(content, -1) {
 		a, err := attrs(i[1])
 		if err != nil {
@@ -224,6 +225,9 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 			return nil, bad
 		}
 		name := a["name"]
+		if name == "collection" {
+			collectionOffered = true
+		}
 		if name == "csrf_token" {
 			if token != "" || csrfToken(a) == "" {
 				return nil, bad
@@ -260,6 +264,11 @@ func prepareForm(raw []byte, c definitions.Catalog) (url.Values, error) {
 	}
 	if submit == "" || (submit == "download_request" && token == "") {
 		return nil, bad
+	}
+	// GBA still requires the complete collection option on forms that offer it.
+	// The current single-collection form has no collection input.
+	if c.ProviderSystemID == "23" && !collectionOffered {
+		delete(values, "collection")
 	}
 	for name := range values {
 		if found[name] != 1 {
