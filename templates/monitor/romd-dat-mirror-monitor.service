@@ -1,0 +1,16 @@
+[Unit]
+Description=Verify the signed ROMD DAT mirror and Genesis catalog
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+DynamicUser=yes
+StateDirectory=romd-dat-mirror-monitor
+StateDirectoryMode=0700
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+TimeoutStartSec=3min
+ExecStart=/opt/romd-dat-mirror-monitor/catalog-reader monitor --root /opt/romd-dat-mirror-monitor/1.root.json --site https://moonlarkstudios.github.io/romd-dat-data --cache ${STATE_DIRECTORY} --catalog no-intro/genesis/standard --name "Sega - Mega Drive - Genesis"

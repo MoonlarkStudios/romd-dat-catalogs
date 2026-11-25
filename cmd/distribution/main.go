@@ -18,7 +18,7 @@ import (
 
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("commands: init, rotate, stage, restore, recover-publisher, verify-assets, candidate, catalogs, export-data, validate-definitions")
+		return errors.New("commands: init, rotate, stage, restore, recover-publisher, verify-assets, candidate, catalogs, monitor, export-data, validate-definitions")
 	}
 	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	switch args[0] {
@@ -167,7 +167,7 @@ func run(args []string) error {
 			Version: *version, Repository: *repository, Commit: *commit, IndexHash: *digest, VerifiedAt: at,
 		}
 		return distribution.RecoverPublisher(rootBytes, *site, *state, checkpoint, nil)
-	case "candidate", "catalogs":
+	case "candidate", "catalogs", "monitor":
 		root := fs.String("root", "trust/1.root.json", "independently pinned public root")
 		site := fs.String("site", "", "HTTPS publisher site")
 		bundle := fs.String("bundle", "", "local signed Stage bundle; exclusive with --site")
@@ -178,14 +178,22 @@ func run(args []string) error {
 		if e := fs.Parse(args[1:]); e != nil {
 			return e
 		}
-		if fs.NArg() != 0 || *cache == "" || *out == "" || (*site == "") == (*bundle == "") {
-			return errors.New("reader requires root, cache, out, and exactly one of site/bundle")
+		if fs.NArg() != 0 || *cache == "" || (*site == "") == (*bundle == "") {
+			return errors.New("reader requires root, cache, and exactly one of site/bundle")
 		}
-		if args[0] == "candidate" && (*id == "" || *name == "") {
-			return errors.New("candidate requires catalog and name")
+		if args[0] == "monitor" {
+			if *out != "" || *bundle != "" {
+				return errors.New("monitor requires a live HTTPS site and writes its report to stdout")
+			}
+		} else if *out == "" {
+			return errors.New("reader requires out")
 		}
-		if args[0] == "catalogs" && (*id != "" || *name != "") {
-			return errors.New("catalogs does not select a DAT")
+		if args[0] == "catalogs" {
+			if *id != "" || *name != "" {
+				return errors.New("catalogs does not select a DAT")
+			}
+		} else if *id == "" || *name == "" {
+			return errors.New("candidate and monitor require catalog and name")
 		}
 		var metadataClient, assetClient *http.Client
 		if *bundle != "" {
@@ -214,7 +222,21 @@ func run(args []string) error {
 			return errors.New("candidate cache is in use; retry after the active reader finishes")
 		}
 		defer syscall.Flock(int(gate.Fd()), syscall.LOCK_UN)
-		index, e := distribution.RefreshIndex(rootBytes, strings.TrimRight(*site, "/"), *cache, metadataClient)
+		origin := strings.TrimRight(*site, "/")
+		if args[0] == "monitor" {
+			report, err := distribution.MonitorMirror(rootBytes, origin, *cache, *id, *name, metadataClient, assetClient)
+			if err != nil {
+				return err
+			}
+			if err = json.NewEncoder(os.Stdout).Encode(report); err != nil {
+				return err
+			}
+			if report.Alert != "" {
+				return errors.New("signed mirror alert: " + report.Alert)
+			}
+			return nil
+		}
+		index, e := distribution.RefreshIndex(rootBytes, origin, *cache, metadataClient)
 		if e != nil {
 			return e
 		}

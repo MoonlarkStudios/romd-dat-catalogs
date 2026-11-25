@@ -137,7 +137,12 @@ func TestInitAndStageCLI(t *testing.T) {
 }
 
 func TestCommandValidation(t *testing.T) {
-	for _, args := range [][]string{nil, {"unknown"}, {"init"}, {"stage", "--keys", "missing"}, {"restore", "--site", "http://example.invalid"}, {"catalogs"}, {"catalogs", "--site", "https://example.invalid", "--cache", "unused", "--out", "unused", "--catalog", "redump/psx/discs"}} {
+	for _, args := range [][]string{
+		nil, {"unknown"}, {"init"}, {"stage", "--keys", "missing"}, {"restore", "--site", "http://example.invalid"},
+		{"catalogs"}, {"catalogs", "--site", "https://example.invalid", "--cache", "unused", "--out", "unused", "--catalog", "redump/psx/discs"},
+		{"monitor", "--site", "https://example.invalid", "--cache", "unused"},
+		{"monitor", "--bundle", "bundle", "--cache", "unused", "--catalog", "redump/psx/discs", "--name", "PSX"},
+	} {
 		if e := run(args); e == nil {
 			t.Fatalf("accepted %v", args)
 		}
