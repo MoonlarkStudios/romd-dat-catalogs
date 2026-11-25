@@ -15,6 +15,53 @@ import (
 
 const reviewedTerms = "<html>Operator-reviewed terms for this fixture</html>"
 
+func TestTokenBoundSelectionPreservesCompleteExport(t *testing.T) {
+	token := strings.Repeat("a", 64)
+	control := `<input type="hidden" name="csrf_token" value="` + token + `">`
+	form := strings.Replace(selection(), "download_dat_2026-09-05", "download_request", 1)
+	form = strings.Replace(form, "</form>", control+"</form>", 1)
+	got, err := prepareForm([]byte(form), catalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := completeSelection()
+	want.Set("download_request", "Prepare")
+	want.Set("csrf_token", token)
+	if got.Encode() != want.Encode() {
+		t.Fatal("token-bound selector changed the complete export policy")
+	}
+	for _, invalid := range []string{
+		strings.Replace(form, control, "", 1),
+		strings.Replace(form, control, control+control, 1),
+		strings.Replace(form, token, "malformed", 1),
+		strings.Replace(form, control, strings.Replace(control, "csrf_token", "another_token", 1), 1),
+	} {
+		if _, err := prepareForm([]byte(invalid), catalog()); err == nil {
+			t.Fatal("invalid token-bound selector was accepted")
+		}
+	}
+}
+
+func TestTokenBoundDownloadUsesOnlyTheManagerControls(t *testing.T) {
+	token := strings.Repeat("b", 64)
+	control := `<input name="csrf_token" type="hidden" value="` + token + `">`
+	form := `<form action="" method="post">` + control + `<input type="submit" name="download_file" value="Download!!"></form>`
+	got, err := downloadForm([]byte(form))
+	if err != nil || len(got) != 2 || got.Get("csrf_token") != token || got.Get("download_file") != "Download!!" {
+		t.Fatal("manager controls were not preserved", err)
+	}
+	for _, invalid := range []string{
+		strings.Replace(form, control, "", 1),
+		strings.Replace(form, control, control+control, 1),
+		strings.Replace(form, token, "malformed", 1),
+		strings.Replace(form, `type="hidden"`, `type="hidden" disabled`, 1),
+	} {
+		if _, err := downloadForm([]byte(invalid)); err == nil {
+			t.Fatal("invalid token-bound manager form was accepted")
+		}
+	}
+}
+
 func consentPage(token string) string {
 	return `<p>To use DAT-o-MATIC, please read and accept our Terms and Conditions, which include the Privacy Policy.
 <a href="terms.html" target="_blank">Read the terms</a></p>
@@ -38,7 +85,7 @@ func TestDatomaticConsentIsScopedToApprovedTermsAndAnonymousSession(t *testing.T
 		{name: "matching approval", approval: digest, documents: 1, accepts: 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			var documents, accepts, downloads atomic.Int32
+			var documents, accepts, prompts, downloads atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Path == "/terms.html" {
 					documents.Add(1)
@@ -69,6 +116,7 @@ func TestDatomaticConsentIsScopedToApprovedTermsAndAnonymousSession(t *testing.T
 				}
 				session, err := r.Cookie("session")
 				if err != nil || session.Value != "accepted" {
+					prompts.Add(1)
 					http.SetCookie(w, &http.Cookie{Name: "session", Value: "anonymous", Path: "/"})
 					io.WriteString(w, consentPage(token))
 					return
@@ -91,7 +139,7 @@ func TestDatomaticConsentIsScopedToApprovedTermsAndAnonymousSession(t *testing.T
 				t.Fatal(err)
 			}
 			acquisitions := 1
-			if tc.failure == "" {
+			if tc.failure == "" || tc.failure == "terms_acceptance_required" || tc.failure == "terms_changed" {
 				acquisitions = 2
 			}
 			for i := 0; i < acquisitions; i++ {
@@ -105,6 +153,9 @@ func TestDatomaticConsentIsScopedToApprovedTermsAndAnonymousSession(t *testing.T
 			}
 			if documents.Load() != tc.documents || accepts.Load() != tc.accepts {
 				t.Fatalf("got %d terms reads, %d acceptances", documents.Load(), accepts.Load())
+			}
+			if prompts.Load() != 1 {
+				t.Fatalf("expected one visit to the terms prompt, got %d", prompts.Load())
 			}
 			if count := downloads.Load(); (tc.failure == "" && count != 2) || (tc.failure != "" && count != 0) {
 				t.Fatalf("unexpected DAT download count %d", count)

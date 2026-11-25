@@ -159,7 +159,11 @@ jobs:
           select_catalog no-intro/32x/standard "$SEGA32X_ENABLED"
           select_catalog no-intro/nds/standard "$NDS_ENABLED"
           select_catalog no-intro/3ds/standard "$N3DS_ENABLED"
-          ./bin/publisher "${args[@]}" > publication-summary.json
+          if ! ./bin/publisher "${args[@]}" > publication-summary.json 2> publication-diagnostics.log; then
+            cat publication-diagnostics.log >&2
+            exit 1
+          fi
+          cat publication-diagnostics.log >&2
           {
             printf '### Catalog acquisition result\n\n'
             jq -r '"\(.catalogs - .failed)/\(.catalogs) catalogs healthy. \(.failed) refreshes unavailable.\n", (.details | to_entries[] | select(.value.health != "healthy") | "- \(.key): refresh unavailable; " + (if .value.artifact then "last verified artifact retained" else "no artifact available" end))' publication-summary.json
@@ -169,6 +173,10 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$(jq '.failed' publication-summary.json)" -gt 0 ]; then
             echo '::warning::Some catalog refreshes failed. Retained artifacts were preserved; see the acquisition summary.'
+          fi
+          if grep -Eq '^catalog no-intro/[^ ]+: terms_(acceptance_required|changed|acceptance_rejected)$' publication-diagnostics.log; then
+            echo '::warning title=DAT-o-MATIC terms review needed::Review the current upstream terms and the approved digest in NOINTRO_APPROVED_TERMS_SHA256.'
+            printf '\n### DAT-o-MATIC terms review needed\n\nCompare the [current upstream terms](https://datomatic.no-intro.org/terms.html) with the approved digest in NOINTRO_APPROVED_TERMS_SHA256. See the acquisition diagnostics for the specific outcome.\n' >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Check out data repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

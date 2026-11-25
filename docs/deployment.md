@@ -235,8 +235,9 @@ When DAT-o-MATIC prompts, the publisher checks the official document against
 that digest before submitting the official form in the same anonymous session.
 The session stays in memory for one publisher run. A missing or changed digest
 requires operator review. The publisher retains the last working DAT in either
-case. Workflow diagnostics distinguish `terms_acceptance_required`,
-`terms_changed`, and `terms_acceptance_rejected`.
+case and skips further No-Intro requests in that run. The Actions run summary
+calls out terms failures. Workflow diagnostics distinguish
+`terms_acceptance_required`, `terms_changed`, and `terms_acceptance_rejected`.
 
 ### Private key custody
 

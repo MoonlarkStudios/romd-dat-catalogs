@@ -64,6 +64,7 @@ type Adapter struct {
 	origin              string
 	client              *http.Client
 	approvedTermsSHA256 string
+	termsBlock          string
 	gate                chan struct{}
 	next                time.Time
 	gap                 time.Duration
@@ -87,7 +88,7 @@ func (a *Adapter) setTermsApproval(sha256 string) error {
 	if sha256 == "" {
 		return nil
 	}
-	if !lowercaseSHA256.MatchString(sha256) {
+	if !lowercaseHex64.MatchString(sha256) {
 		return errors.New("No-Intro terms approval must be a lowercase SHA-256 digest")
 	}
 	a.approvedTermsSHA256 = sha256
@@ -156,6 +157,9 @@ func (a *Adapter) acquire(ctx context.Context, id string, c definitions.Catalog,
 			r.Diagnostics[len(r.Diagnostics)-1].Outcome = code
 		}
 		return r, nil
+	}
+	if a.termsBlock != "" {
+		return fail(a.termsBlock)
 	}
 	if time.Until(a.next) > a.gap {
 		stamp := a.next.UTC().Format(time.RFC3339Nano)
@@ -247,14 +251,16 @@ func (a *Adapter) acquire(ctx context.Context, id string, c definitions.Catalog,
 	}
 	if consent := termsForm(form); consent != nil {
 		if a.approvedTermsSHA256 == "" {
-			return fail("terms_acceptance_required")
+			a.termsBlock = "terms_acceptance_required"
+			return fail(a.termsBlock)
 		}
 		terms, response, code := request("terms_document", a.origin+"/terms.html", nil, formLimit)
 		if code != "" {
 			return fail(code)
 		}
 		if response.StatusCode != http.StatusOK || publisher.Hash(terms) != a.approvedTermsSHA256 {
-			return fail("terms_changed")
+			a.termsBlock = "terms_changed"
+			return fail(a.termsBlock)
 		}
 		accepted, response, code := request("terms_accept", source, consent, formLimit)
 		if code != "" {
